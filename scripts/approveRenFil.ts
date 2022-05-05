@@ -24,46 +24,19 @@ async function approveRenFil(
 }
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
-
-  // // We get the contract to deploy
   const [admin, client, sp1] = await ethers.getSigners();
-
-  const AuctionFactory = await ethers.getContractFactory("AuctionFactory");
-  const auctionFactory = await AuctionFactory.deploy(admin.address);
-  const MOCKFILADDR = ethers.utils.getAddress(
-    "0xfb482fad22dc89fc0677ea8ad171313dff99ce9f"
-  );
-
   const RENFILADDR = ethers.utils.getAddress(
     "0xc4Ace9278e7E01755B670C0838c3106367639962"
   );
+  const AUCTIONCONTRACTADDR = "0x04f4F7067c005B59a6a2584b67D57F364870b385";
 
-  await auctionFactory.deployed();
-
-  const deployedAuction = await auctionFactory.createAuction(
+  await approveRenFil(
     RENFILADDR,
     // eslint-disable-next-line node/no-unsupported-features/es-builtins
-    BigInt(0.1 * 10 ** 18),
-    1,
-    client.address,
-    admin.address
+    BigInt(10000000000000 * 10 ** DECIMAL),
+    sp1,
+    AUCTIONCONTRACTADDR
   );
-
-  const receipt = await deployedAuction.wait();
-  const auctionEvents = receipt?.events?.filter((x) => {
-    return x.event === "AuctionCreated";
-  });
-
-  const auctionAddress = auctionEvents?.[0].args?.[0] ?? "";
-
-  console.log("Auction Factory deployed to: ", auctionFactory.address);
-  console.log("Auction deployed to: ", auctionAddress);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
