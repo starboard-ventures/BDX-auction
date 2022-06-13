@@ -50,7 +50,7 @@ contract AuctionFactory {
 
     // Modifiers
     modifier onlyAdmin() {
-        require(msg.sender == admin, "Only admin can create auctions");
+        require(msg.sender == admin, "Only admin can create");
         _;
     }
 }

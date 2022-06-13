@@ -6,6 +6,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "hardhat-contract-sizer"
 
 dotenv.config();
 
@@ -32,16 +33,22 @@ const config: HardhatUserConfig = {
     //     mnemonic: process.env.MNEMONIC_TEST,
     //   },
     // },
+    localhost: {
+      accounts: [process.env.TEST_PRIVATE || '']
+    },
     mumbai: {
-      url: process.env.MUMBAI_URL || "https://matic-mumbai.chainstacklabs.com",
-      accounts: [process.env.MNEMONIC_TEST || ''],
+      url: process.env.MUMBAI_URL,
+      accounts: [process.env.TEST_PRIVATE || ''],
     },
     mainnet: {
       url: process.env.MAINNET_URL || "",
-      accounts: {
-        mnemonic: process.env.MNEMONIC_TEST,
-      },
+      accounts: [process.env.TEST_PRIVATE || ''],
     },
+  },
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

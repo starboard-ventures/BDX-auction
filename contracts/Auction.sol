@@ -43,8 +43,6 @@ contract Auction {
         BidState bidState;
     }
 
-    uint8 public constant BID_DURATION_HRS = 168;
-    uint8 public constant SELECTION_DURATION_HRS = 48;
     AuctionState public auctionState;
     AuctionType public auctionType;
     uint256 public startTime;
@@ -61,7 +59,6 @@ contract Auction {
     address public admin;
     address public client;
     IERC20 private paymentToken;
-    uint112 private tokenBal;
 
     event AuctionCreated(
         address indexed _client,
@@ -137,6 +134,7 @@ contract Auction {
     //SPs place bid
     function placeBid(uint256 _bid, BidType _bidType) public notExpired {
         require(auctionState == AuctionState.BIDDING, "Auction not BIDDING");
+        require(_bid > 0, "Bid not > 0");
         require(getAllowance(msg.sender) > _bid, "Insufficient allowance");
         require(
             _bid < paymentToken.balanceOf(msg.sender),

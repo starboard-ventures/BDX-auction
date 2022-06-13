@@ -3,6 +3,18 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 
 const DECIMAL = 18;
+
+enum AuctionType {
+  BID,
+  FIXED,
+  BOTH
+}
+
+enum BidType {
+  BID,
+  BUY_NOW
+}
+
 enum AuctionState {
   BIDDING,
   NO_BID_CANCELLED,
@@ -46,7 +58,7 @@ describe("Basic Auction", function () {
     await this.mockFil
       .connect(this.admin)
       .transfer(this.sp3.address, seedAmount);
-
+ 
     this.AuctionFactory = await ethers.getContractFactory("AuctionFactory");
     this.auctionFactory = await this.AuctionFactory.deploy(this.admin.address);
 
