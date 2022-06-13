@@ -63,7 +63,8 @@ describe("Basic Auction", function () {
       BigInt(0.5 * 10 ** DECIMAL),
       2,
       this.client.address,
-      this.admin.address
+      this.admin.address,
+      0
     );
 
     const receipt = await deployedAuction.wait();

@@ -4,6 +4,17 @@ pragma solidity ^0.8.0;
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+enum AuctionType {
+    BID,
+    FIXED,
+    BOTH
+}
+
+enum BidType {
+    BID,
+    BUY_NOW
+}
+
 contract Auction {
     //Constants for auction
     enum AuctionState {
@@ -35,9 +46,11 @@ contract Auction {
     uint8 public constant BID_DURATION_HRS = 168;
     uint8 public constant SELECTION_DURATION_HRS = 48;
     AuctionState public auctionState;
-
+    AuctionType public auctionType;
     uint256 public startTime;
+    uint256 public endTime;
     uint256 public minPrice;
+    uint256 public fixedPrice;
     int32 public noOfCopies;
     int32 public noOfSpSelected;
     int32 private noOfBidders;
@@ -53,13 +66,17 @@ contract Auction {
     event AuctionCreated(
         address indexed _client,
         uint256 _minPrice,
+        uint256 _fixedPrice,
         int32 noOfCopies,
-        AuctionState _auctionState
+        AuctionState _auctionState,
+        AuctionType _type
     );
     event BidPlaced(
         address indexed _bidder,
         uint256 _value,
-        BidState _bidState
+        BidState _bidState,
+        BidType _bidType,
+        AuctionType _auctionType
     );
     event BiddingEnded();
     event BidSelected(
@@ -85,54 +102,70 @@ contract Auction {
         uint256 _minPrice,
         int32 _noOfCopies,
         address _client,
-        address _admin
+        address _admin,
+        uint256 _fixedPrice,
+        uint256 _biddingTime, // unit s;
+        AuctionType _type
     ) {
-        require(_noOfCopies > 0, "noOfCopies has to be > 0");
+        if (_type != AuctionType.BID) {
+            require(_noOfCopies == 1, "noOfCopies should be 1");
+        } else {
+            require(_noOfCopies > 0, "noOfCopies has to be > 0");
+        }
         admin = _admin;
         paymentToken = IERC20(_paymentToken);
 
         minPrice = _minPrice;
+        fixedPrice = _fixedPrice;
         noOfCopies = _noOfCopies;
         auctionState = AuctionState.BIDDING;
+        auctionType = _type;
         client = _client;
         startTime = block.timestamp;
-        emit AuctionCreated(client, minPrice, noOfCopies, auctionState);
+        endTime = block.timestamp + _biddingTime;
+        emit AuctionCreated(
+            client,
+            minPrice,
+            fixedPrice,
+            noOfCopies,
+            auctionState,
+            auctionType
+        );
         console.log("Auction deployed with admin: ", admin);
     }
 
     //SPs place bid
-    function placeBid(uint256 _bid) public {
+    function placeBid(uint256 _bid, BidType _bidType) public notExpired {
         require(auctionState == AuctionState.BIDDING, "Auction not BIDDING");
         require(getAllowance(msg.sender) > _bid, "Insufficient allowance");
-        require(_bid >= minPrice || _bid == 0, "Bid amount < minPrice");
         require(
             _bid < paymentToken.balanceOf(msg.sender),
             "Insufficient balance"
         );
-
+        if (auctionType == AuctionType.FIXED) {
+            require(_bidType == BidType.BUY_NOW, "bidType not right");
+            bidFixedAuction(_bid);
+            return;
+        } else if (
+            auctionType == AuctionType.BOTH && _bidType == BidType.BUY_NOW
+        ) {
+            buyWithFixedPrice(_bid);
+            return;
+        }
+        // Normal bid function
         Bid storage b = bids[msg.sender];
+        require(_bid + b.bidAmount >= minPrice, "Bid total amount < minPrice");
 
-        //cancel old bid
-        if (hasBidded(msg.sender)) {
-            paymentToken.transfer(msg.sender, b.bidAmount);
-        } else {
+        if (!hasBidded(msg.sender)) {
             bidders.push(msg.sender);
             noOfBidders++;
         }
+        paymentToken.transferFrom(msg.sender, address(this), _bid);
+        b.bidAmount = _bid + b.bidAmount;
+        b.bidTime = block.timestamp;
+        b.bidState = BidState.BIDDING;
 
-        if (_bid == 0) {
-            b.bidAmount = _bid;
-            b.bidState = BidState.CANCELLED;
-            noOfBidders--;
-            b.bidTime = block.timestamp;
-        } else {
-            paymentToken.transferFrom(msg.sender, address(this), _bid);
-            b.bidAmount = _bid;
-            b.bidTime = block.timestamp;
-            b.bidState = BidState.BIDDING;
-        }
-
-        emit BidPlaced(msg.sender, _bid, b.bidState);
+        emit BidPlaced(msg.sender, _bid, b.bidState, _bidType, auctionType);
     }
 
     function endBidding() public onlyAdmin {
@@ -274,6 +307,51 @@ contract Auction {
         );
     }
 
+    function getBidAmount(address bidder) public view returns (uint256) {
+        return bids[bidder].bidAmount;
+    }
+
+    function bidFixedAuction(uint256 _bid) internal {
+        require(noOfBidders == 0, "Auction Has bidded");
+        require(_bid == fixedPrice, "Price not right");
+        paymentToken.transferFrom(msg.sender, address(this), _bid);
+        Bid storage b = bids[msg.sender];
+        b.isSelected = true;
+        b.bidState = BidState.SELECTED;
+        noOfSpSelected = 1;
+        noOfBidders = 1;
+        auctionState = AuctionState.VERIFICATION;
+        emit BidPlaced(
+            msg.sender,
+            _bid,
+            b.bidState,
+            BidType.BUY_NOW,
+            auctionType
+        );
+    }
+
+    function buyWithFixedPrice(uint256 _bid) internal {
+        Bid storage b = bids[msg.sender];
+        require(_bid + b.bidAmount == fixedPrice, "Total price not right");
+        paymentToken.transferFrom(msg.sender, address(this), _bid);
+        if (!hasBidded(msg.sender)) {
+            bidders.push(msg.sender);
+            noOfBidders++;
+        }
+        b.isSelected = true;
+        b.bidState = BidState.SELECTED;
+        refundOthers(msg.sender);
+        noOfSpSelected = 1;
+        auctionState = AuctionState.VERIFICATION;
+        emit BidPlaced(
+            msg.sender,
+            _bid,
+            b.bidState,
+            BidType.BUY_NOW,
+            auctionType
+        );
+    }
+
     //Helper Functions
     function getAllowance(address sender) public view returns (uint256) {
         return paymentToken.allowance(sender, address(this));
@@ -301,6 +379,22 @@ contract Auction {
         }
 
         emit AllBidsRefunded(count);
+    }
+
+    function refundOthers(address _buyer) internal {
+        uint32 count = 0;
+        for (uint8 i = 0; i < bidders.length; i++) {
+            if (bidders[i] == _buyer) continue;
+            Bid storage b = bids[bidders[i]];
+            if (b.bidAmount > 0) {
+                paymentToken.transfer(bidders[i], b.bidAmount);
+                b.bidAmount = 0;
+                b.isSelected = false;
+                b.bidState = BidState.REFUNDED;
+                count++;
+            }
+        }
+        emit BidsUnselectedRefunded(count);
     }
 
     function updateAllOngoingBidsToPending() internal {
@@ -373,6 +467,11 @@ contract Auction {
     // Modifiers
     modifier onlyAdmin() {
         require(msg.sender == admin, "Txn sender not admin");
+        _;
+    }
+
+    modifier notExpired() {
+        require(block.timestamp <= endTime, "Auction expired");
         _;
     }
 

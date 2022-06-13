@@ -23,14 +23,20 @@ contract AuctionFactory {
         uint256 _minPrice,
         int32 _noOfCopies,
         address _client,
-        address _admin
+        address _admin,
+        uint256 _fixedPrice,
+        uint256 _biddingTime, // unit s;
+        AuctionType _type
     ) external onlyAdmin returns (address) {
         Auction auction = new Auction(
             _paymentToken,
             _minPrice,
             _noOfCopies,
             _client,
-            _admin
+            _admin,
+            _fixedPrice,
+            _biddingTime,
+            _type
         );
 
         auctionAddresses.push(address(auction));

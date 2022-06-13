@@ -26,11 +26,15 @@ const config: HardhatUserConfig = {
   solidity: "0.8.4",
   defaultNetwork: "hardhat",
   networks: {
+    // mumbai: {
+    //   url: process.env.MUMBAI_URL || "",
+    //   accounts: {
+    //     mnemonic: process.env.MNEMONIC_TEST,
+    //   },
+    // },
     mumbai: {
-      url: process.env.MUMBAI_URL || "",
-      accounts: {
-        mnemonic: process.env.MNEMONIC_TEST,
-      },
+      url: process.env.MUMBAI_URL || "https://matic-mumbai.chainstacklabs.com",
+      accounts: [process.env.MNEMONIC_TEST || ''],
     },
     mainnet: {
       url: process.env.MAINNET_URL || "",
