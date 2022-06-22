@@ -6,7 +6,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import "hardhat-contract-sizer"
+// import "hardhat-contract-sizer"
 
 dotenv.config();
 
@@ -24,7 +24,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.4",
+  solidity: "0.8.7",
   defaultNetwork: "hardhat",
   networks: {
     // mumbai: {
@@ -38,25 +38,27 @@ const config: HardhatUserConfig = {
     },
     mumbai: {
       url: process.env.MUMBAI_URL,
-      accounts: [process.env.TEST_PRIVATE || ''],
+      accounts: [process.env.ADMIN_PRIVATE || ''],
     },
     mainnet: {
       url: process.env.MAINNET_URL || "",
       accounts: [process.env.TEST_PRIVATE || ''],
     },
   },
-  contractSizer: {
-    alphaSort: true,
-    runOnCompile: true,
-    disambiguatePaths: false,
-  },
+  // contractSizer: {
+  //   alphaSort: true,
+  //   runOnCompile: true,
+  //   disambiguatePaths: false,
+  //   except: ['AuctionFactory']
+  // },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: "USD",
   },
   etherscan: {
     apiKey: {
-      polygon: process.env.POLYGONSCAN_API_KEY,
+      polygon: process.env.POLYGON_API,
+      polygonMumbai: process.env.POLYGON_API
     },
   },
 };

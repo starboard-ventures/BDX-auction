@@ -316,6 +316,8 @@ contract Auction {
         Bid storage b = bids[msg.sender];
         b.isSelected = true;
         b.bidState = BidState.SELECTED;
+        b.bidAmount = _bid + b.bidAmount;
+        b.bidTime = block.timestamp;
         noOfSpSelected = 1;
         noOfBidders = 1;
         auctionState = AuctionState.VERIFICATION;
@@ -338,6 +340,8 @@ contract Auction {
         }
         b.isSelected = true;
         b.bidState = BidState.SELECTED;
+        b.bidAmount = _bid + b.bidAmount;
+        b.bidTime = block.timestamp;
         refundOthers(msg.sender);
         noOfSpSelected = 1;
         auctionState = AuctionState.VERIFICATION;
