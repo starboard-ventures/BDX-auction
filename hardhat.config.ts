@@ -6,9 +6,14 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+const { setGlobalDispatcher, ProxyAgent } = require("undici");
 // import "hardhat-contract-sizer"
-
 dotenv.config();
+
+console.log(process.env.HTTPS_PROXY);
+const proxyAgent = new ProxyAgent(process.env.HTTPS_PROXY!);
+setGlobalDispatcher(proxyAgent);
+
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -27,22 +32,19 @@ const config: HardhatUserConfig = {
   solidity: "0.8.7",
   defaultNetwork: "hardhat",
   networks: {
-    // mumbai: {
-    //   url: process.env.MUMBAI_URL || "",
-    //   accounts: {
-    //     mnemonic: process.env.MNEMONIC_TEST,
-    //   },
-    // },
     localhost: {
       accounts: [process.env.TEST_PRIVATE || '']
     },
     mumbai: {
       url: process.env.MUMBAI_URL,
+      //   accounts: {
+      //     mnemonic: process.env.MNEMONIC_TEST,
+      //   },
       accounts: [process.env.ADMIN_PRIVATE || ''],
     },
     mainnet: {
       url: process.env.MAINNET_URL || "",
-      accounts: [process.env.TEST_PRIVATE || ''],
+      accounts: [process.env.ADMIN_PRIVATE || ''],
     },
   },
   // contractSizer: {
@@ -57,8 +59,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      polygon: process.env.POLYGON_API,
-      polygonMumbai: process.env.POLYGON_API
+      polygonMumbai: process.env.POLYGON_API!
     },
   },
 };
