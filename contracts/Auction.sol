@@ -39,6 +39,7 @@ contract Auction {
     struct Bid {
         uint256 bidAmount;
         uint256 bidTime;
+        uint256 bidConfirmed; // 已分批confirm的数额
         bool isSelected;
         BidState bidState;
     }
@@ -52,6 +53,7 @@ contract Auction {
     int32 public noOfCopies;
     int32 public noOfSpSelected;
     int32 private noOfBidders;
+    int32 public version;
 
     address[] public bidders;
     mapping(address => Bid) public bids;
@@ -86,7 +88,11 @@ contract Auction {
     event AuctionCancelledNoBids();
     event BidsUnselectedRefunded(uint32 _count);
     event AllBidsRefunded(uint32 _count);
-    event BidDealSuccessfulPaid(address indexed _bidder, uint256 _value);
+    event BidDealSuccessfulPaid(
+        address indexed _bidder,
+        uint256 _value,
+        bool finished
+    );
     event BidDealUnsuccessfulRefund(
         address indexed _bidder,
         uint256 _refundAmount,
@@ -265,21 +271,30 @@ contract Auction {
         emit AuctionCancelled();
     }
 
-    function setBidDealSuccess(address bidder) public {
+    function setBidDealSuccess(address bidder, uint256 value) public {
         require(
             auctionState == AuctionState.VERIFICATION,
             "Auction not VERIFICATION"
         );
-        Bid storage b = bids[bidder];
-        require(b.bidState == BidState.SELECTED, "Deal not selected");
         require(
             msg.sender == admin || msg.sender == bidder,
             "Txn sender not admin or SP"
         );
-        paymentToken.transfer(client, b.bidAmount);
-        b.bidState = BidState.DEAL_SUCCESSFUL_PAID;
-        updateAuctionEnd();
-        emit BidDealSuccessfulPaid(bidder, b.bidAmount);
+        require(value > 0, "Confirm <= 0");
+        Bid storage b = bids[bidder];
+        require(b.bidState == BidState.SELECTED, "Deal not selected");
+        require(value <= b.bidAmount - b.bidConfirmed, "Not enough value");
+        paymentToken.transfer(client, value);
+        b.bidConfirmed = b.bidConfirmed + value;
+        if (b.bidConfirmed == b.bidAmount) {
+            b.bidState = BidState.DEAL_SUCCESSFUL_PAID;
+            updateAuctionEnd();
+        }
+        emit BidDealSuccessfulPaid(
+            bidder,
+            value,
+            b.bidConfirmed == b.bidAmount
+        );
     }
 
     //sets bid deal to fail and payout amount
@@ -293,9 +308,16 @@ contract Auction {
         );
         Bid storage b = bids[bidder];
         require(b.bidState == BidState.SELECTED, "Deal not selected");
-        require(refundAmount <= b.bidAmount, "Refund amount > bid amount");
+        require(
+            refundAmount <= b.bidAmount - b.bidConfirmed,
+            "Refund amount > the rest"
+        );
         paymentToken.transfer(bidder, refundAmount);
-        paymentToken.transfer(client, b.bidAmount - refundAmount);
+        // transfer the rest to client
+        paymentToken.transfer(
+            client,
+            b.bidAmount - b.bidConfirmed - refundAmount
+        );
         b.bidState = BidState.DEAL_UNSUCCESSFUL_REFUNDED;
         updateAuctionEnd();
         emit BidDealUnsuccessfulRefund(
@@ -320,6 +342,7 @@ contract Auction {
         b.bidTime = block.timestamp;
         noOfSpSelected = 1;
         noOfBidders = 1;
+        bidders.push(msg.sender);
         auctionState = AuctionState.VERIFICATION;
         emit BidPlaced(
             msg.sender,
@@ -344,6 +367,7 @@ contract Auction {
         b.bidTime = block.timestamp;
         refundOthers(msg.sender);
         noOfSpSelected = 1;
+        bidders.push(msg.sender);
         auctionState = AuctionState.VERIFICATION;
         emit BidPlaced(
             msg.sender,
@@ -373,7 +397,7 @@ contract Auction {
         for (uint8 i = 0; i < bidders.length; i++) {
             Bid storage b = bids[bidders[i]];
             if (b.bidAmount > 0) {
-                paymentToken.transfer(bidders[i], b.bidAmount);
+                paymentToken.transfer(bidders[i], b.bidAmount - b.bidConfirmed);
                 b.bidAmount = 0;
                 b.bidState = BidState.REFUNDED;
                 count++;
