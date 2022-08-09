@@ -40,7 +40,6 @@ contract Auction {
         uint256 bidAmount;
         uint256 bidTime;
         uint256 bidConfirmed; // 已分批confirm的数额
-        bool isSelected;
         BidState bidState;
     }
 
@@ -53,10 +52,11 @@ contract Auction {
     int32 public noOfCopies;
     int32 public noOfSpSelected;
     int32 private noOfBidders;
-    int32 public version;
+    int8 public version = 3;
 
     address[] public bidders;
     mapping(address => Bid) public bids;
+    mapping(AuctionState => uint256) public times;
 
     address public admin;
     address public client;
@@ -121,7 +121,7 @@ contract Auction {
         minPrice = _minPrice;
         fixedPrice = _fixedPrice;
         noOfCopies = _noOfCopies;
-        auctionState = AuctionState.BIDDING;
+        updateState(AuctionState.BIDDING);
         auctionType = _type;
         client = _client;
         startTime = block.timestamp;
@@ -177,13 +177,13 @@ contract Auction {
         for (uint8 i = 0; i < bidders.length; i++) {
             Bid storage b = bids[bidders[i]];
             if (b.bidState != BidState.CANCELLED) {
-                auctionState = AuctionState.SELECTION;
+                updateState(AuctionState.SELECTION);
                 updateAllOngoingBidsToPending();
                 emit BiddingEnded();
                 return;
             }
         }
-        auctionState = AuctionState.NO_BID_CANCELLED;
+        updateState(AuctionState.NO_BID_CANCELLED);
         emit AuctionCancelledNoBids();
     }
 
@@ -256,7 +256,7 @@ contract Auction {
         }
 
         refundUnsuccessfulBids();
-        auctionState = AuctionState.VERIFICATION;
+        updateState(AuctionState.VERIFICATION);
         emit SelectionEnded();
     }
 
@@ -266,7 +266,7 @@ contract Auction {
                 auctionState == AuctionState.SELECTION,
             "Auction not BIDDING/SELECTION"
         );
-        auctionState = AuctionState.CANCELLED;
+        updateState(AuctionState.CANCELLED);
         refundAllBids();
         emit AuctionCancelled();
     }
@@ -336,14 +336,13 @@ contract Auction {
         require(_bid == fixedPrice, "Price not right");
         paymentToken.transferFrom(msg.sender, address(this), _bid);
         Bid storage b = bids[msg.sender];
-        b.isSelected = true;
         b.bidState = BidState.SELECTED;
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
         noOfSpSelected = 1;
         noOfBidders = 1;
         bidders.push(msg.sender);
-        auctionState = AuctionState.VERIFICATION;
+        updateState(AuctionState.VERIFICATION);
         emit BidPlaced(
             msg.sender,
             _bid,
@@ -361,14 +360,13 @@ contract Auction {
             bidders.push(msg.sender);
             noOfBidders++;
         }
-        b.isSelected = true;
         b.bidState = BidState.SELECTED;
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
         refundOthers(msg.sender);
         noOfSpSelected = 1;
         bidders.push(msg.sender);
-        auctionState = AuctionState.VERIFICATION;
+        updateState(AuctionState.VERIFICATION);
         emit BidPlaced(
             msg.sender,
             _bid,
@@ -393,7 +391,7 @@ contract Auction {
     }
 
     function refundAllBids() internal {
-        uint32 count = 0;
+        uint8 count = 0;
         for (uint8 i = 0; i < bidders.length; i++) {
             Bid storage b = bids[bidders[i]];
             if (b.bidAmount > 0) {
@@ -408,14 +406,13 @@ contract Auction {
     }
 
     function refundOthers(address _buyer) internal {
-        uint32 count = 0;
+        uint8 count = 0;
         for (uint8 i = 0; i < bidders.length; i++) {
             if (bidders[i] == _buyer) continue;
             Bid storage b = bids[bidders[i]];
             if (b.bidAmount > 0) {
                 paymentToken.transfer(bidders[i], b.bidAmount);
                 b.bidAmount = 0;
-                b.isSelected = false;
                 b.bidState = BidState.REFUNDED;
                 count++;
             }
@@ -443,13 +440,13 @@ contract Auction {
                 return;
             }
         }
-        auctionState = AuctionState.COMPLETED;
+        updateState(AuctionState.COMPLETED);
         emit AuctionEnded();
     }
 
     // only refunds bids that are currently PENDING_SELECTION.
     function refundUnsuccessfulBids() internal {
-        uint32 count = 0;
+        uint8 count = 0;
         for (uint8 i = 0; i < bidders.length; i++) {
             Bid storage b = bids[bidders[i]];
             if (b.bidState == BidState.PENDING_SELECTION) {
@@ -463,6 +460,11 @@ contract Auction {
         }
 
         emit BidsUnselectedRefunded(count);
+    }
+
+    function updateState(AuctionState status) internal {
+        auctionState = status;
+        times[status] = block.timestamp;
     }
 
     function quickSort(
@@ -498,11 +500,6 @@ contract Auction {
 
     modifier notExpired() {
         require(block.timestamp <= endTime, "Auction expired");
-        _;
-    }
-
-    modifier onlyClient() {
-        require(msg.sender == client, "Txn sender not client");
         _;
     }
 
