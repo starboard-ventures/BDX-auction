@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 enum AuctionType {
@@ -134,7 +134,7 @@ contract Auction {
             auctionState,
             auctionType
         );
-        console.log("Auction deployed with admin: ", admin);
+        // console.log("Auction deployed with admin: ", admin);
     }
 
     //SPs place bid
@@ -143,7 +143,7 @@ contract Auction {
         require(_bid > 0, "Bid not > 0");
         require(getAllowance(msg.sender) > _bid, "Insufficient allowance");
         require(
-            _bid < paymentToken.balanceOf(msg.sender),
+            _bid <= paymentToken.balanceOf(msg.sender),
             "Insufficient balance"
         );
         if (auctionType == AuctionType.FIXED) {

@@ -33,7 +33,7 @@ async function main() {
 
   // // We get the contract to deploy
   const [admin, client, sp1] = await ethers.getSigners();
-  console.log('Admin address is:', admin)
+  console.log('Admin address is:', admin.address)
   const AuctionFactory = await ethers.getContractFactory("AuctionFactory");
   const auctionFactory = await AuctionFactory.deploy(admin.address);
   // const MOCKFILADDR = ethers.utils.getAddress(
