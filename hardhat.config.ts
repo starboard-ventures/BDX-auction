@@ -63,7 +63,7 @@ const config: HardhatUserConfig = {
   //   except: ['AuctionFactory']
   // },
   gasReporter: {
-    enabled: process.env.REPORT_GAS !== undefined,
+    enabled: true ||  process.env.REPORT_GAS !== undefined,
     currency: "USD",
   },
   etherscan: {
