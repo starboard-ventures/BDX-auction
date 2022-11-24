@@ -42,6 +42,10 @@ const config: HardhatUserConfig = {
       //   },
       accounts: [process.env.ADMIN_PRIVATE || ''],
     },
+    bscTestnet: {
+      url: process.env.BSC_TEST_URL || "",
+      accounts: [process.env.TEST_PRIVATE2 || ''],
+    },
     mainnet: {
       url: process.env.MAINNET_URL || "",
       accounts: [process.env.ADMIN_PRIVATE || ''],
@@ -59,7 +63,8 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      polygonMumbai: process.env.POLYGON_API!
+      polygonMumbai: process.env.POLYGON_API!,
+      bscTestnet: process.env.BSC_API!,
     },
   },
 };
