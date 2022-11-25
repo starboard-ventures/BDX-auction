@@ -29,7 +29,12 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 // Go to https://hardhat.org/config/ to learn more
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.7",
+  solidity: { version: "0.8.7", settings: {
+    optimizer: {
+      enabled: true,
+      runs: 200
+    }
+  } },
   defaultNetwork: "hardhat",
   networks: {
     localhost: {
@@ -65,6 +70,7 @@ const config: HardhatUserConfig = {
     apiKey: {
       polygonMumbai: process.env.POLYGON_API!,
       bscTestnet: process.env.BSC_API!,
+      polygon: process.env.POLYGON_API!
     },
   },
 };

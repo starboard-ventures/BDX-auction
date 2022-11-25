@@ -1,7 +1,8 @@
 /* eslint-disable node/no-unsupported-features/es-builtins */
 import { expect } from "chai";
 import { ethers } from "hardhat";
-
+import web3 from 'web3'
+import BN from 'bignumber.js'
 const DECIMAL = 18;
 
 enum AuctionType {
@@ -74,7 +75,7 @@ describe("Test Auction", function () {
       1,
       this.client.address,
       this.admin.address,
-      BigInt(3 * 10 ** DECIMAL),
+      web3.utils.toWei('3', 'ether'),
       3600 * 24,
       AuctionType.BID
     );
@@ -175,10 +176,10 @@ describe("Test Auction", function () {
   it("set SP1 bid deal success and payout", async function () {
     const payoutAmount = BigInt(3 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.sp1).setBidDealSuccess(this.sp1.address)
+      this.auction.connect(this.sp1).setBidDealSuccess(this.sp1.address, payoutAmount)
     )
       .to.emit(this.auction, "BidDealSuccessfulPaid")
-      .withArgs(this.sp1.address, payoutAmount);
+      .withArgs(this.sp1.address, payoutAmount, true);
 
     const auctionBalance = BigInt(0 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(
