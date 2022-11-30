@@ -131,7 +131,13 @@ describe("Test Auction", function () {
     const res = await this.auction.bids(this.sp1.address)
     expect(res[0]).to.equal(sp1Bided)
   });
-
+  
+  it("end selection not correct time", async function () {
+    await expect(this.auction.connect(this.admin).endSelection()).to.be.revertedWith(
+      "Auction not SELECTION"
+    );
+  });
+  
   it("end bidding", async function () {
     await expect(this.auction.connect(this.admin).endBidding()).to.emit(
       this.auction,
@@ -140,11 +146,17 @@ describe("Test Auction", function () {
     expect(await this.auction.auctionState()).to.equal(AuctionState.SELECTION);
   });
 
+
   it("select sp1 bid by client", async function () {
     const sp1BidAmount = BigInt(3 * 10 ** DECIMAL);
     await expect(this.auction.selectBid(this.sp1.address))
       .to.emit(this.auction, "BidSelected")
       .withArgs(this.sp1.address, sp1BidAmount, 1);
+  });
+  it("select more than copies", async function () {
+    const sp1BidAmount = BigInt(3 * 10 ** DECIMAL);
+    await expect(this.auction.selectBid(this.sp2.address))
+      .to.be.revertedWith('All copies selected');
   });
 
   it("end selection", async function () {

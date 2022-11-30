@@ -1,47 +1,19 @@
 /* eslint-disable node/no-unsupported-features/es-builtins */
 import { expect } from "chai";
 import { ethers } from "hardhat";
-
+import web3 from 'web3'
+import { AuctionState, BidState, AuctionType, BidType } from './_utils'
 const DECIMAL = 18;
-
-enum AuctionType {
-  BID,
-  FIXED,
-  BOTH
-}
-
-enum BidType {
-  BID,
-  BUY_NOW
-}
-
-enum AuctionState {
-  BIDDING,
-  NO_BID_CANCELLED,
-  SELECTION,
-  VERIFICATION,
-  CANCELLED,
-  COMPLETED,
-}
-
-enum BidState {
-  BIDDING,
-  PENDING_SELECTION,
-  SELECTED,
-  REFUNDED,
-  CANCELLED,
-  DEAL_SUCCESSFUL_PAID,
-  DEAL_UNSUCCESSFUL_REFUNDED,
-}
 
 describe("Basic Auction", function () {
   before(async function () {
-    const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
+    const [_admin, _client, _sp1, _sp2, _sp3, _sp4] = await ethers.getSigners();
     this.admin = _admin;
     this.client = _client;
     this.sp1 = _sp1;
     this.sp2 = _sp2;
     this.sp3 = _sp3;
+    this.sp4 = _sp4;
     this.MockFil = await ethers.getContractFactory("MockFil");
 
     this.mockFil = await this.MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
@@ -58,6 +30,9 @@ describe("Basic Auction", function () {
     await this.mockFil
       .connect(this.admin)
       .transfer(this.sp3.address, seedAmount);
+    await this.mockFil
+      .connect(this.admin)
+      .transfer(this.sp4.address, seedAmount);
  
     this.AuctionFactory = await ethers.getContractFactory("AuctionFactory");
     this.auctionFactory = await this.AuctionFactory.deploy(this.admin.address);
@@ -76,7 +51,9 @@ describe("Basic Auction", function () {
       2,
       this.client.address,
       this.admin.address,
-      0
+      web3.utils.toWei('10', 'ether'),
+      3600 * 24,
+      AuctionType.BID
     );
 
     const receipt = await deployedAuction.wait();
@@ -102,15 +79,19 @@ describe("Basic Auction", function () {
     await this.mockFil
       .connect(this.sp1)
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
-    // const bidTime = parseInt(new Date().getTime().toFixed(10));
     // SP1 Bid
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp1).placeBid(bidAmount))
+    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
 
     const sp1Balance = BigInt(99 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
+  });
+
+  it("SP1 bid for getBidAmount", async function () {
+    const bidAmount = BigInt(1 * 10 ** DECIMAL);
+    expect(await this.auction.connect(this.sp1).getBidAmount(this.sp1.address)).to.equal(bidAmount);
   });
 
   it("SP2 bid for auction", async function () {
@@ -121,9 +102,9 @@ describe("Basic Auction", function () {
 
     // SP2 Bid
     const bidAmount = BigInt(2 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp2).placeBid(bidAmount))
+    await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING);
+      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
 
     const sp2Balance = BigInt(98 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
@@ -137,13 +118,30 @@ describe("Basic Auction", function () {
 
     // SP3 Bid
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp3).placeBid(bidAmount))
+    await expect(this.auction.connect(this.sp3).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING);
+      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
 
     const sp3Balance = BigInt(99 * 10 ** DECIMAL);
 
     expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
+  });
+
+  it("SP4 bid for auction", async function () {
+    // Approve SPs wallet
+    await this.mockFil
+      .connect(this.sp4)
+      .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
+
+    // SP3 Bid
+    const bidAmount = BigInt(2 * 10 ** DECIMAL);
+    await expect(this.auction.connect(this.sp4).placeBid(bidAmount, BidType.BID))
+      .to.emit(this.auction, "BidPlaced")
+      .withArgs(this.sp4.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
+
+    const sp4Balance = BigInt(98 * 10 ** DECIMAL);
+
+    expect(await this.mockFil.balanceOf(this.sp4.address)).to.equal(sp4Balance);
   });
 
   it("SP3 increased bid", async function () {
@@ -153,10 +151,10 @@ describe("Basic Auction", function () {
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
 
     // SP3 Bid
-    const bidAmount = BigInt(3 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp3).placeBid(bidAmount))
+    const bidAmount = BigInt(2 * 10 ** DECIMAL);
+    await expect(this.auction.connect(this.sp3).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING);
+      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
 
     const sp3Balance = BigInt(97 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
@@ -215,10 +213,10 @@ describe("Basic Auction", function () {
   it("set SP1 bid deal success and payout", async function () {
     const payoutAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address)
+      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address, payoutAmount)
     )
       .to.emit(this.auction, "BidDealSuccessfulPaid")
-      .withArgs(this.sp1.address, payoutAmount);
+      .withArgs(this.sp1.address, payoutAmount, true);
 
     const auctionBalance = BigInt(3 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(

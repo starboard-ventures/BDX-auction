@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import web3 from 'web3'
 import BN from 'bignumber.js'
+import { BigNumber } from "ethers";
 const DECIMAL = 18;
 
 enum AuctionType {
@@ -35,7 +36,7 @@ enum BidState {
   DEAL_UNSUCCESSFUL_REFUNDED,
 }
 
-describe("Test Auction", function () {
+describe("Test Auction BigNumber", function () {
   before(async function () {
     const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
     this.admin = _admin;
@@ -76,9 +77,8 @@ describe("Test Auction", function () {
       this.client.address,
       this.admin.address,
       web3.utils.toWei('3117', 'ether'),
-      // new BN(3117 * 10 ** DECIMAL).toFixed(),
       3600 * 24,
-      AuctionType.BOTH
+      AuctionType.BOTH,
     );
 
   });
@@ -90,12 +90,12 @@ describe("Test Auction", function () {
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // const bidTime = parseInt(new Date().getTime().toFixed(10));
     // SP1 Bid
-    const bidAmount = BigInt(3117 * 10 ** DECIMAL);
+    const bidAmount =  web3.utils.toWei('3117', 'ether');
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW, AuctionType.BOTH);
 
-    const sp1Balance = BigInt(99 * 10 ** DECIMAL);
+    const sp1Balance =  web3.utils.toWei('1883', 'ether');
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 });

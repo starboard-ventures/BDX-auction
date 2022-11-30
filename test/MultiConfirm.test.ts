@@ -60,6 +60,28 @@ describe("Test Auction Multi confirm", function () {
     );
   });
 
+  it("SP1 bid wrong type for fixed auciton", async function () {
+    // Approve SPs wallet
+    await this.mockFil
+      .connect(this.sp1)
+      .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
+    // SP1 Bid
+    const bidAmount = BigInt(3 * 10 ** DECIMAL);
+    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
+    .to.be.revertedWith("bidType not right")
+  });
+
+  it("SP1 bid wrong price for auction", async function () {
+    // Approve SPs wallet
+    await this.mockFil
+      .connect(this.sp1)
+      .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
+    // SP1 Bid
+    const bidAmount = BigInt(4 * 10 ** DECIMAL);
+    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
+      .to.be.revertedWith('Price not right')
+  });
+
   it("SP1 bid for auction", async function () {
     // Approve SPs wallet
     await this.mockFil

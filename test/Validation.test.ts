@@ -1,28 +1,11 @@
 /* eslint-disable node/no-unsupported-features/es-builtins */
 import { expect } from "chai";
 import { ethers } from "hardhat";
-
+import web3 from 'web3'
+import { AuctionState, BidState, AuctionType, BidType } from './_utils'
 const DECIMAL = 18;
-enum AuctionState {
-  BIDDING,
-  NO_BID_CANCELLED,
-  SELECTION,
-  VERIFICATION,
-  CANCELLED,
-  COMPLETED,
-}
 
-enum BidState {
-  BIDDING,
-  PENDING_SELECTION,
-  SELECTED,
-  REFUNDED,
-  CANCELLED,
-  DEAL_SUCCESSFUL_PAID,
-  DEAL_UNSUCCESSFUL_REFUNDED,
-}
-
-describe("Basic Auction", function () {
+describe("Validation Auction", function () {
   before(async function () {
     const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
     this.admin = _admin;
@@ -60,7 +43,9 @@ describe("Basic Auction", function () {
       1,
       this.client.address,
       this.admin.address,
-      0
+      web3.utils.toWei('2', 'ether'),
+      3600 * 24,
+      AuctionType.BID,
     );
 
     const receipt = await deployedAuction.wait();
@@ -84,53 +69,49 @@ describe("Basic Auction", function () {
   it("SP1 insufficient allowance", async function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.sp1).placeBid(bidAmount)
+      this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID)
     ).to.be.revertedWith("Insufficient allowance");
   });
 
+  // it("SP1 bid less then 0", async function () {
+  //   // Approve SPs wallet
+  //   await this.mockFil
+  //     .connect(this.sp1)
+  //     .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
+
+  //   const bidAmount = BigInt(-1 * 10 ** DECIMAL);
+  //   await expect(
+  //     this.auction.connect(this.sp1).placeBid(-1, BidType.BID)
+  //   ).to.be.revertedWith("Bid not > 0");
+  // });
+
   it("SP1 bid below min price", async function () {
-    // Approve SPs wallet
     await this.mockFil
       .connect(this.sp1)
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
 
     const bidAmount = BigInt(0.5 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.sp1).placeBid(bidAmount)
-    ).to.be.revertedWith("Bid amount < minPrice");
+      this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID)
+    ).to.be.revertedWith("Bid total amount < minPrice");
   });
 
   it("SP1 bid insufficient mockfil", async function () {
     // Approve SPs wallet
     const bidAmount = BigInt(10000 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.sp1).placeBid(bidAmount)
+      this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID)
     ).to.be.revertedWith("Insufficient balance");
   });
 
   it("SP1 bid for auction", async function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp1).placeBid(bidAmount))
+    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
 
     const sp1Balance = BigInt(99 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
-  });
-
-  it("SP2 bid for auction 0 mockfil", async function () {
-    // Approve SPs wallet
-    await this.mockFil
-      .connect(this.sp2)
-      .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
-
-    const bidAmount = BigInt(0 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp2).placeBid(bidAmount))
-      .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp2.address, bidAmount, BidState.CANCELLED);
-
-    const sp2Balance = BigInt(100 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
   });
 
   it("select sp1 bid failed bidding ended", async function () {
@@ -168,7 +149,7 @@ describe("Basic Auction", function () {
   it("SP1 bid failed bidding ended", async function () {
     const bidAmount = BigInt(10000 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.sp1).placeBid(bidAmount)
+      this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID)
     ).to.be.revertedWith("Auction not BIDDING");
   });
 
@@ -185,8 +166,18 @@ describe("Basic Auction", function () {
   });
 
   it("set SP1 bid deal success fail", async function () {
+    const payAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address)
+      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address, payAmount)
+    ).to.be.revertedWith("Auction not VERIFICATION");
+  });
+
+  it("set bid deal refund by wrong status", async function () {
+    const payoutAmount = BigInt(50 * 10 ** DECIMAL);
+    await expect(
+      this.auction
+        .connect(this.admin)
+        .setBidDealRefund(this.sp1.address, payoutAmount)
     ).to.be.revertedWith("Auction not VERIFICATION");
   });
 
@@ -197,9 +188,17 @@ describe("Basic Auction", function () {
     );
   });
 
-  it("set SP3 bid deal success fail", async function () {
+  it("set SP2 bid deal success not right", async function () {
+    const payAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp2.address)
+      this.auction.connect(this.sp3).setBidDealSuccess(this.sp2.address, payAmount)
+    ).to.be.revertedWith("Txn sender not admin or SP");
+  });
+
+  it("set SP3 bid deal success fail", async function () {
+    const payAmount = BigInt(1 * 10 ** DECIMAL);
+    await expect(
+      this.auction.connect(this.admin).setBidDealSuccess(this.sp2.address, payAmount)
     ).to.be.revertedWith("Deal not selected");
   });
 
@@ -209,16 +208,25 @@ describe("Basic Auction", function () {
       this.auction
         .connect(this.admin)
         .setBidDealRefund(this.sp1.address, payoutAmount)
-    ).to.be.revertedWith("Refund amount > bid amount");
+    ).to.be.revertedWith("Refund amount > the rest");
+  });
+
+  it("set wrong bidder deal refund fail", async function () {
+    const payoutAmount = BigInt(50 * 10 ** DECIMAL);
+    await expect(
+      this.auction
+        .connect(this.admin)
+        .setBidDealRefund(this.sp3.address, payoutAmount)
+    ).to.be.revertedWith("Deal not selected");
   });
 
   it("set SP1 bid deal success and payout", async function () {
     const payoutAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address)
+      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address, payoutAmount)
     )
       .to.emit(this.auction, "BidDealSuccessfulPaid")
-      .withArgs(this.sp1.address, payoutAmount);
+      .withArgs(this.sp1.address, payoutAmount, true);
 
     const auctionBalance = BigInt(0 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(
