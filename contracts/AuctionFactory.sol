@@ -10,7 +10,13 @@ contract AuctionFactory {
 
     event AuctionCreated(
         address indexed _auctionAddress,
-        address indexed _client
+        address indexed _client,
+        address _admin,
+        uint256 _minPrice,
+        uint256 _fixedPrice,
+        uint256 _biddingTime, // unit s;
+        AuctionType _type,
+        uint256 indexed _id
     );
 
     constructor(address _admin) {
@@ -25,8 +31,9 @@ contract AuctionFactory {
         address _admin,
         uint256 _fixedPrice,
         uint256 _biddingTime, // unit s;
-        AuctionType _type
-    ) external onlyAdmin returns (address) {
+        AuctionType _type,
+        uint256 _id
+    ) external returns (address) {
         Auction auction = new Auction(
             _paymentToken,
             _minPrice,
@@ -39,17 +46,11 @@ contract AuctionFactory {
         );
 
         auctionAddresses.push(address(auction));
-        emit AuctionCreated(address(auction), _client);
+        emit AuctionCreated(address(auction), _client, _admin, _minPrice, _fixedPrice, _biddingTime, _type, _id);
         return address(auction);
     }
 
     function getAuctions() external view returns (address[] memory) {
         return auctionAddresses;
-    }
-
-    // Modifiers
-    modifier onlyAdmin() {
-        require(msg.sender == admin, "Only admin can create");
-        _;
     }
 }
