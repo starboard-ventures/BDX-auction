@@ -181,7 +181,6 @@ describe("Test BOTH Auction Multi confirm", function () {
     this.auction = await this.Auction.deploy(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       BigInt(3 * 10 ** DECIMAL),
@@ -244,7 +243,7 @@ describe("Test BOTH Auction Multi confirm", function () {
     const sp1BidAmount = BigInt(2.5 * 10 ** DECIMAL);
     await expect(this.auction.selectBid(this.sp1.address))
       .to.emit(this.auction, "BidSelected")
-      .withArgs(this.sp1.address, sp1BidAmount, 1);
+      .withArgs(this.sp1.address, sp1BidAmount);
   });
 
   it("end selection", async function () {

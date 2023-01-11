@@ -42,7 +42,6 @@ this.Auction = await ethers.getContractFactory("Auction");
     this.auction = await this.Auction.deploy(
       this.mockFil.address,
       BigInt(0.5 * 10 ** DECIMAL),
-      2,
       this.client.address,
       this.admin.address,
       web3.utils.toWei('3117', 'ether'),

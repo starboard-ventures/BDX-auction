@@ -40,7 +40,6 @@ describe("Validation Auction", function () {
     const deployedAuction = await this.auctionFactory.createAuction(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       BigInt(2 * 10 ** DECIMAL),

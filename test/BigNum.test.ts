@@ -73,7 +73,6 @@ describe("Test Auction BigNumber", function () {
     this.auction = await this.Auction.deploy(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       web3.utils.toWei('3117', 'ether'),

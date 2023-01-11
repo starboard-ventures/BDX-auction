@@ -39,7 +39,6 @@ describe("Factory Auction", function () {
     await expect(this.auctionFactory.createAuction(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       web3.utils.toWei('2', 'ether'),

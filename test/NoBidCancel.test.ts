@@ -46,7 +46,6 @@ describe("No Bid Auction", function () {
     const deployedAuction = await this.auctionFactory.createAuction(
       this.mockFil.address,
       BigInt(0.5 * 10 ** DECIMAL),
-      2,
       this.client.address,
       this.admin.address,
       web3.utils.toWei('10', 'ether'),
