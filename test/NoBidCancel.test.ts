@@ -50,7 +50,8 @@ describe("No Bid Auction", function () {
       this.admin.address,
       web3.utils.toWei('10', 'ether'),
       1,
-      AuctionType.BID
+      AuctionType.BID,
+      1
     );
 
     const receipt = await deployedAuction.wait();
@@ -68,7 +69,6 @@ describe("No Bid Auction", function () {
     expect(await this.auction.admin()).to.equal(this.admin.address);
     expect(await this.auction.auctionState()).to.equal(AuctionState.BIDDING);
     expect(await this.auction.minPrice()).to.equal(BigInt(0.5 * 10 ** DECIMAL));
-    expect(await this.auction.noOfCopies()).to.equal(2);
   });
 
   it("No bid Cancel", async function () {

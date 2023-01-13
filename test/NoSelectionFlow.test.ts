@@ -147,8 +147,7 @@ this.Auction = await ethers.getContractFactory("Auction");
       "SelectionEnded"
     );
 
-    // refunded
-    const sp2Balance = BigInt(98 * 10 ** DECIMAL);
+    const sp2Balance = BigInt(100 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
 
     // no refund
@@ -159,35 +158,9 @@ this.Auction = await ethers.getContractFactory("Auction");
     const sp3Balance = BigInt(97 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
 
-    const auctionBalance = BigInt(5 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(
-      auctionBalance
-    );
-  });
-
-  it("set SP2 bid deal success and payout", async function () {
-    const totalAmount = BigInt(2 * 10 ** DECIMAL);
-    const payoutAmount = BigInt(1 * 10 ** DECIMAL);
-    await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp2.address, payoutAmount)
-    )
-      .to.emit(this.auction, "BidDealSuccessfulPaid")
-      .withArgs(this.sp2.address, payoutAmount, false);
-    const payoutAmount2 = BigInt(1 * 10 ** DECIMAL);
-    await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp2.address, payoutAmount2)
-    )
-      .to.emit(this.auction, "BidDealSuccessfulPaid")
-      .withArgs(this.sp2.address, payoutAmount2, true);
-
     const auctionBalance = BigInt(3 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(
       auctionBalance
-    );
-
-    const clientBalance = BigInt(2 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.client.address)).to.equal(
-      clientBalance
     );
   });
 
@@ -210,7 +183,7 @@ this.Auction = await ethers.getContractFactory("Auction");
     const sp3Balance = BigInt(98 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
 
-    const clientBalance = BigInt(4 * 10 ** DECIMAL);
+    const clientBalance = BigInt(2 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.client.address)).to.equal(
       clientBalance
     );

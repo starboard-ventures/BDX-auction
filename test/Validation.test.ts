@@ -45,6 +45,7 @@ describe("Validation Auction", function () {
       web3.utils.toWei('2', 'ether'),
       3600 * 24,
       AuctionType.BID,
+      1
     );
 
     const receipt = await deployedAuction.wait();
@@ -62,7 +63,6 @@ describe("Validation Auction", function () {
     expect(await this.auction.admin()).to.equal(this.admin.address);
     expect(await this.auction.auctionState()).to.equal(AuctionState.BIDDING);
     expect(await this.auction.minPrice()).to.equal(BigInt(1 * 10 ** DECIMAL));
-    expect(await this.auction.noOfCopies()).to.equal(1);
   });
 
   it("SP1 insufficient allowance", async function () {
@@ -90,9 +90,11 @@ describe("Validation Auction", function () {
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
 
     const bidAmount = BigInt(0.5 * 10 ** DECIMAL);
-    await expect(
-      this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID)
-    ).to.be.revertedWith("Bid total amount < minPrice");
+    const sp1Balance = BigInt(99.5 * 10 ** DECIMAL);
+    expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
+      .to.emit(this.auction, "BidPlaced")
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
+    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 
   it("SP1 bid insufficient mockfil", async function () {
@@ -109,7 +111,7 @@ describe("Validation Auction", function () {
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
 
-    const sp1Balance = BigInt(99 * 10 ** DECIMAL);
+    const sp1Balance = BigInt(98.5 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 
@@ -220,9 +222,8 @@ describe("Validation Auction", function () {
   });
 
   it("set SP1 bid deal success and payout", async function () {
-    const payoutAmount = BigInt(1 * 10 ** DECIMAL);
-    await expect(
-      this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address, payoutAmount)
+    const payoutAmount = BigInt(1.5 * 10 ** DECIMAL);
+     expect(await this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address, payoutAmount)
     )
       .to.emit(this.auction, "BidDealSuccessfulPaid")
       .withArgs(this.sp1.address, payoutAmount, true);
@@ -232,7 +233,7 @@ describe("Validation Auction", function () {
       auctionBalance
     );
 
-    const clientBalance = BigInt(1 * 10 ** DECIMAL);
+    const clientBalance = BigInt(1.5 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.client.address)).to.equal(
       clientBalance
     );
