@@ -51,12 +51,12 @@ describe("Test Auction Multi confirm", function () {
     this.auction = await this.Auction.deploy(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       BigInt(3 * 10 ** DECIMAL),
       3600 * 24,
-      AuctionType.FIXED
+      AuctionType.FIXED,
+      1
     );
   });
 
@@ -185,7 +185,8 @@ describe("Test BOTH Auction Multi confirm", function () {
       this.admin.address,
       BigInt(3 * 10 ** DECIMAL),
       3600 * 24,
-      AuctionType.BOTH
+      AuctionType.BOTH,
+      1
     );
   });
 

@@ -188,7 +188,7 @@ contract Auction is ReentrancyGuard {
         emit BidSelected(selectedAddress, b.bidAmount);
     }
 
-    //ends the selection phase
+    //auto ends the selection phase
     function endSelection() public onlyClientOrAdmin {
         require(
             auctionState == AuctionState.SELECTION,

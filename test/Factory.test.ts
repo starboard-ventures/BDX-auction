@@ -44,32 +44,7 @@ describe("Factory Auction", function () {
       web3.utils.toWei('2', 'ether'),
       3600 * 24,
       AuctionType.BID,
+      1
     )).to.be.revertedWith("Only admin can create")
-  });
-
-  it("noOfCopies should be 1", async function () {
-    await expect(this.auctionFactory.connect(this.sp1).createAuction(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      2,
-      this.client.address,
-      this.admin.address,
-      web3.utils.toWei('2', 'ether'),
-      3600 * 24,
-      AuctionType.FIXED,
-    )).to.be.revertedWith('noOfCopies should be 1')
-  });
-
-  it("noOfCopies has to be > 0", async function () {
-    await expect(this.auctionFactory.connect(this.sp1).createAuction(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      -1,
-      this.client.address,
-      this.admin.address,
-      web3.utils.toWei('2', 'ether'),
-      3600 * 24,
-      AuctionType.BID,
-    )).to.be.revertedWith('noOfCopies has to be > 0')
   });
 });

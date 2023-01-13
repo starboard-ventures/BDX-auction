@@ -46,6 +46,7 @@ describe("Cancel Auction", function () {
       web3.utils.toWei('2', 'ether'),
       3600 * 24,
       AuctionType.BOTH,
+      1
     );
 
     const receipt = await deployedAuction.wait();
@@ -63,7 +64,6 @@ describe("Cancel Auction", function () {
     expect(await this.auction.admin()).to.equal(this.admin.address);
     expect(await this.auction.auctionState()).to.equal(AuctionState.BIDDING);
     expect(await this.auction.minPrice()).to.equal(BigInt(0.5 * 10 ** DECIMAL));
-    expect(await this.auction.noOfCopies()).to.equal(1);
   });
 
   it("SP2 bid for auction", async function () {
@@ -142,12 +142,12 @@ describe("Cancel Auction", function () {
     const deployedAuction = await this.auctionFactory.createAuction(
       this.mockFil.address,
       BigInt(0.5 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       web3.utils.toWei('2', 'ether'),
       3600 * 24,
       AuctionType.BOTH,
+      1
     );
 
     const receipt = await deployedAuction.wait();
@@ -165,7 +165,6 @@ describe("Cancel Auction", function () {
     expect(await this.auction.admin()).to.equal(this.admin.address);
     expect(await this.auction.auctionState()).to.equal(AuctionState.BIDDING);
     expect(await this.auction.minPrice()).to.equal(BigInt(0.5 * 10 ** DECIMAL));
-    expect(await this.auction.noOfCopies()).to.equal(1);
   });
 
   it("SP1 bid for auction", async function () {

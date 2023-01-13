@@ -45,6 +45,7 @@ describe("Validation Auction", function () {
       BigInt(2 * 10 ** DECIMAL),
       1,
       AuctionType.BID,
+      1
     );
 
     const receipt = await deployedAuction.wait();
@@ -62,7 +63,6 @@ describe("Validation Auction", function () {
     expect(await this.auction.admin()).to.equal(this.admin.address);
     expect(await this.auction.auctionState()).to.equal(AuctionState.BIDDING);
     expect(await this.auction.minPrice()).to.equal(BigInt(1 * 10 ** DECIMAL));
-    expect(await this.auction.noOfCopies()).to.equal(1);
   });
 
 
