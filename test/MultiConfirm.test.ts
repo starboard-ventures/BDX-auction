@@ -51,12 +51,11 @@ describe("Test Auction Multi confirm", function () {
     this.auction = await this.Auction.deploy(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       BigInt(3 * 10 ** DECIMAL),
       3600 * 24,
-      AuctionType.FIXED
+      AuctionType.FIXED,
     );
   });
 
@@ -181,12 +180,11 @@ describe("Test BOTH Auction Multi confirm", function () {
     this.auction = await this.Auction.deploy(
       this.mockFil.address,
       BigInt(1 * 10 ** DECIMAL),
-      1,
       this.client.address,
       this.admin.address,
       BigInt(3 * 10 ** DECIMAL),
       3600 * 24,
-      AuctionType.BOTH
+      AuctionType.BOTH,
     );
   });
 
@@ -244,29 +242,39 @@ describe("Test BOTH Auction Multi confirm", function () {
     const sp1BidAmount = BigInt(2.5 * 10 ** DECIMAL);
     await expect(this.auction.selectBid(this.sp1.address))
       .to.emit(this.auction, "BidSelected")
-      .withArgs(this.sp1.address, sp1BidAmount, 1);
+      .withArgs(this.sp1.address, sp1BidAmount);
   });
 
-  it("end selection", async function () {
-    await expect(this.auction.connect(this.admin).endSelection()).to.emit(
-      this.auction,
-      "SelectionEnded"
-    );
+  it("Select to Dealmaking", async function () {
+    // SP1 Bid
+    const balance = BigInt(100 * 10 ** DECIMAL);
+    expect(await this.auction.auctionState())
+      .to.equal(AuctionState.VERIFICATION)
 
-    // refunded
-    const sp2Balance = BigInt(100 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
-
-    // no refund
-    const sp1Balance = BigInt(97.5 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
-
-    const auctionBalance = BigInt(2.5 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(
-      auctionBalance
-    );
-    expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
+    const sp1Balance = BigInt(2.5 * 10 ** DECIMAL);
+    expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(sp1Balance);
+    expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(balance);
   });
+  // it("end selection", async function () {
+  //   await expect(this.auction.connect(this.admin).endSelection()).to.emit(
+  //     this.auction,
+  //     "SelectionEnded"
+  //   );
+
+  //   // refunded
+  //   const sp2Balance = BigInt(100 * 10 ** DECIMAL);
+  //   expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
+
+  //   // no refund
+  //   const sp1Balance = BigInt(97.5 * 10 ** DECIMAL);
+  //   expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
+
+  //   const auctionBalance = BigInt(2.5 * 10 ** DECIMAL);
+  //   expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(
+  //     auctionBalance
+  //   );
+  //   expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
+  // });
 
   it("set SP1 bid deal success first 1 FIL", async function () {
     const payoutAmount = BigInt(1 * 10 ** DECIMAL);

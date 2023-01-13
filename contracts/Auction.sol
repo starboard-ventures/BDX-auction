@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 enum AuctionType {
     BID,
@@ -14,7 +15,7 @@ enum BidType {
     BUY_NOW
 }
 
-contract Auction {
+contract Auction is ReentrancyGuard {
     //Constants for auction
     enum AuctionState {
         BIDDING,
@@ -48,10 +49,7 @@ contract Auction {
     uint256 public endTime;
     uint256 public minPrice;
     uint256 public fixedPrice;
-    int32 public noOfCopies;
-    int32 public noOfSpSelected;
-    int32 private noOfBidders;
-    int8 public version = 3;
+    int8 public version = 4;
 
     address[] public bidders;
     mapping(address => Bid) public bids;
@@ -65,7 +63,6 @@ contract Auction {
         address indexed _client,
         uint256 _minPrice,
         uint256 _fixedPrice,
-        int32 noOfCopies,
         AuctionState _auctionState,
         AuctionType _type
     );
@@ -79,8 +76,7 @@ contract Auction {
     event BiddingEnded();
     event BidSelected(
         address indexed _bidder,
-        uint256 _value,
-        int32 _totalNoOfSpSelected
+        uint256 _value
     );
     event SelectionEnded();
     event AuctionCancelled();
@@ -102,24 +98,17 @@ contract Auction {
     constructor(
         IERC20 _paymentToken,
         uint256 _minPrice,
-        int32 _noOfCopies,
         address _client,
         address _admin,
         uint256 _fixedPrice,
         uint256 _biddingTime, // unit s;
         AuctionType _type
     ) {
-        if (_type != AuctionType.BID) {
-            require(_noOfCopies == 1, "noOfCopies should be 1");
-        } else {
-            require(_noOfCopies > 0, "noOfCopies has to be > 0");
-        }
         admin = _admin;
         paymentToken = IERC20(_paymentToken);
 
         minPrice = _minPrice;
         fixedPrice = _fixedPrice;
-        noOfCopies = _noOfCopies;
         updateState(AuctionState.BIDDING);
         auctionType = _type;
         client = _client;
@@ -129,14 +118,13 @@ contract Auction {
             client,
             minPrice,
             fixedPrice,
-            noOfCopies,
             auctionState,
             auctionType
         );
     }
 
     //SPs place bid
-    function placeBid(uint256 _bid, BidType _bidType) public notExpired {
+    function placeBid(uint256 _bid, BidType _bidType) public notExpired nonReentrant {
         require(auctionState == AuctionState.BIDDING, "Auction not BIDDING");
         require(_bid > 0, "Bid not > 0");
         require(getAllowance(msg.sender) > _bid, "Insufficient allowance");
@@ -144,6 +132,9 @@ contract Auction {
             _bid <= paymentToken.balanceOf(msg.sender),
             "Insufficient balance"
         );
+        if (!hasBidded(msg.sender)) {
+            bidders.push(msg.sender);
+        }
         if (auctionType == AuctionType.FIXED) {
             require(_bidType == BidType.BUY_NOW, "bidType not right");
             bidFixedAuction(_bid);
@@ -156,12 +147,6 @@ contract Auction {
         }
         // Normal bid function
         Bid storage b = bids[msg.sender];
-        require(_bid + b.bidAmount >= minPrice, "Bid total amount < minPrice");
-
-        if (!hasBidded(msg.sender)) {
-            bidders.push(msg.sender);
-            noOfBidders++;
-        }
         paymentToken.transferFrom(msg.sender, address(this), _bid);
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
@@ -186,75 +171,40 @@ contract Auction {
     }
 
     //Client selectBid
-    function selectBid(address selectedAddress) public onlyClientOrAdmin {
+    function selectBid(address selectedAddress) public onlyClientOrAdmin nonReentrant {
         require(
             auctionState == AuctionState.SELECTION,
             "Auction not SELECTION"
         );
-        require(noOfCopies > noOfSpSelected, "All copies selected");
         Bid storage b = bids[selectedAddress];
         require(
             b.bidState == BidState.PENDING_SELECTION,
             "Bid not PENDING_SELECTION"
         );
         b.bidState = BidState.SELECTED;
-        noOfSpSelected++;
-        emit BidSelected(selectedAddress, b.bidAmount, noOfSpSelected);
+        // only 1 winner.
+        refundUnsuccessfulBids();
+        updateState(AuctionState.VERIFICATION);
+        emit BidSelected(selectedAddress, b.bidAmount);
     }
 
-    //ends the selection phase
+    //auto ends the selection phase
     function endSelection() public onlyClientOrAdmin {
         require(
             auctionState == AuctionState.SELECTION,
             "Auction not SELECTION"
         );
-        uint256[] memory topBids = new uint256[](bidders.length);
-        int256 pendingBidsIdx = 0;
-        int32 noOfCopiesRemaining = noOfCopies - noOfSpSelected;
-
-        if (noOfCopiesRemaining > 0) {
-            //selection not complete
-            if (noOfCopies >= noOfBidders) {
-                // if noOfCopies exceed or equals to total number of bidders
-                for (uint8 i = 0; i < bidders.length; i++) {
-                    Bid storage b = bids[bidders[i]];
-                    if (b.bidState == BidState.PENDING_SELECTION) {
-                        selectBid(bidders[i]);
-                    }
-                }
-            } else {
-                for (uint8 i = 0; i < bidders.length; i++) {
-                    // get unselected bidders
-                    Bid storage b = bids[bidders[i]];
-                    if (b.bidState == BidState.PENDING_SELECTION) {
-                        topBids[uint256(pendingBidsIdx)] = b.bidAmount;
-                        pendingBidsIdx++;
-                    }
-                }
-                pendingBidsIdx--;
-                quickSort(topBids, 0, pendingBidsIdx);
-
-                for (
-                    int256 i = pendingBidsIdx - noOfCopiesRemaining + 1;
-                    i <= pendingBidsIdx;
-                    i++
-                ) {
-                    uint256 topBidAmount = topBids[uint256(i)];
-                    for (uint8 j = 0; j < bidders.length; j++) {
-                        Bid storage b = bids[bidders[j]];
-                        if (
-                            b.bidState == BidState.PENDING_SELECTION &&
-                            topBidAmount == b.bidAmount
-                        ) {
-                            selectBid(bidders[j]);
-                        }
-                    }
-                }
+        // auto select the highest one.
+        uint256 highest = bids[bidders[0]].bidAmount;
+        address winner = bidders[0];
+        for (uint8 i = 1; i < bidders.length; i++) {
+            Bid storage b = bids[bidders[i]];
+            if(b.bidAmount > highest) {
+                highest = b.bidAmount;
+                winner = bidders[i];
             }
         }
-
-        refundUnsuccessfulBids();
-        updateState(AuctionState.VERIFICATION);
+        selectBid(winner);
         emit SelectionEnded();
     }
 
@@ -269,7 +219,7 @@ contract Auction {
         emit AuctionCancelled();
     }
 
-    function setBidDealSuccess(address bidder, uint256 value) public {
+    function setBidDealSuccess(address bidder, uint256 value) public nonReentrant {
         require(
             auctionState == AuctionState.VERIFICATION,
             "Auction not VERIFICATION"
@@ -329,17 +279,13 @@ contract Auction {
         return bids[bidder].bidAmount;
     }
 
-    function bidFixedAuction(uint256 _bid) internal {
-        require(noOfBidders == 0, "Auction Has bidded");
+    function bidFixedAuction(uint256 _bid) internal  {
         require(_bid == fixedPrice, "Price not right");
         paymentToken.transferFrom(msg.sender, address(this), _bid);
         Bid storage b = bids[msg.sender];
         b.bidState = BidState.SELECTED;
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
-        noOfSpSelected = 1;
-        noOfBidders = 1;
-        bidders.push(msg.sender);
         updateState(AuctionState.VERIFICATION);
         emit BidPlaced(
             msg.sender,
@@ -354,16 +300,10 @@ contract Auction {
         Bid storage b = bids[msg.sender];
         require(_bid + b.bidAmount == fixedPrice, "Total price not right");
         paymentToken.transferFrom(msg.sender, address(this), _bid);
-        if (!hasBidded(msg.sender)) {
-            bidders.push(msg.sender);
-            noOfBidders++;
-        }
         b.bidState = BidState.SELECTED;
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
         refundOthers(msg.sender);
-        noOfSpSelected = 1;
-        bidders.push(msg.sender);
         updateState(AuctionState.VERIFICATION);
         emit BidPlaced(
             msg.sender,
@@ -465,31 +405,6 @@ contract Auction {
         times[status] = block.timestamp;
     }
 
-    function quickSort(
-        uint256[] memory arr,
-        int256 left,
-        int256 right
-    ) internal {
-        int256 i = left;
-        int256 j = right;
-        if (i == j) return;
-        uint256 pivot = arr[uint256(left + (right - left) / 2)];
-        while (i <= j) {
-            while (arr[uint256(i)] < pivot) i++;
-            while (pivot < arr[uint256(j)]) j--;
-            if (i <= j) {
-                (arr[uint256(i)], arr[uint256(j)]) = (
-                    arr[uint256(j)],
-                    arr[uint256(i)]
-                );
-                i++;
-                j--;
-            }
-        }
-        if (left < j) quickSort(arr, left, j);
-        if (i < right) quickSort(arr, i, right);
-    }
-
     // Modifiers
     modifier onlyAdmin() {
         require(msg.sender == admin, "Txn sender not admin");
@@ -509,5 +424,3 @@ contract Auction {
         _;
     }
 }
-
-// Write some getters

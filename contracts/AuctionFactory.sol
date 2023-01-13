@@ -20,13 +20,13 @@ contract AuctionFactory {
     );
 
     constructor(address _admin) {
+        require(_admin != address(0), "Admin is 0.");
         admin = _admin;
     }
-
+    // for users and admin create auctions.
     function createAuction(
         IERC20 _paymentToken,
         uint256 _minPrice,
-        int32 _noOfCopies,
         address _client,
         address _admin,
         uint256 _fixedPrice,
@@ -34,10 +34,17 @@ contract AuctionFactory {
         AuctionType _type,
         uint256 _id
     ) external returns (address) {
+        require(_minPrice > 0, "MinPrice invalid");
+        require(_client != address(0), "Client is 0");
+        require(_admin != address(0), "Admin is 0");
+        require(_fixedPrice > 0, "fixedPrice invalid");
+        require(
+            _biddingTime > 0,
+            "bid time invalid."
+        );
         Auction auction = new Auction(
             _paymentToken,
             _minPrice,
-            _noOfCopies,
             _client,
             _admin,
             _fixedPrice,
@@ -46,10 +53,20 @@ contract AuctionFactory {
         );
 
         auctionAddresses.push(address(auction));
-        emit AuctionCreated(address(auction), _client, _admin, _minPrice, _fixedPrice, _biddingTime, _type, _id);
+        emit AuctionCreated(
+            address(auction),
+            _client,
+            _admin,
+            _minPrice,
+            _fixedPrice,
+            _biddingTime,
+            _type,
+            _id
+        );
         return address(auction);
     }
 
+    // for get all auctions.
     function getAuctions() external view returns (address[] memory) {
         return auctionAddresses;
     }
