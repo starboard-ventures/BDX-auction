@@ -6,14 +6,16 @@ export enum AuctionType {
 
 export enum BidType {
   BID,
-  BUY_NOW
+  BUY_NOW,
+  PARTIAL_BID,
+  PARTIAL_BUY,
 }
 
 export enum AuctionState {
   BIDDING,
   NO_BID_CANCELLED,
   SELECTION,
-  VERIFICATION,
+  DEAL_MAKING,
   CANCELLED,
   COMPLETED,
 }

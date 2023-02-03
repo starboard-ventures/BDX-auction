@@ -106,7 +106,7 @@ describe("Validation Auction", function () {
   });
 
   it("SP1 bid for auction", async function () {
-    const bidAmount = BigInt(1 * 10 ** DECIMAL);
+    const bidAmount = BigInt(1.5 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
@@ -170,7 +170,7 @@ describe("Validation Auction", function () {
     const payAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
       this.auction.connect(this.admin).setBidDealSuccess(this.sp1.address, payAmount)
-    ).to.be.revertedWith("Auction not VERIFICATION");
+    ).to.be.revertedWith("Auction not DEAL_MAKING");
   });
 
   it("set bid deal refund by wrong status", async function () {
@@ -179,7 +179,7 @@ describe("Validation Auction", function () {
       this.auction
         .connect(this.admin)
         .setBidDealRefund(this.sp1.address, payoutAmount)
-    ).to.be.revertedWith("Auction not VERIFICATION");
+    ).to.be.revertedWith("Auction not DEAL_MAKING");
   });
 
   it("end selection", async function () {

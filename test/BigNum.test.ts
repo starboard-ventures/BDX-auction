@@ -4,37 +4,9 @@ import { ethers } from "hardhat";
 import web3 from 'web3'
 import BN from 'bignumber.js'
 import { BigNumber } from "ethers";
+import { AuctionType, BidType, AuctionState, BidState} from './_utils'
 const DECIMAL = 18;
 
-enum AuctionType {
-  BID,
-  FIXED,
-  BOTH
-}
-
-enum BidType {
-  BID,
-  BUY_NOW
-}
-
-enum AuctionState {
-  BIDDING,
-  NO_BID_CANCELLED,
-  SELECTION,
-  VERIFICATION,
-  CANCELLED,
-  COMPLETED,
-}
-
-enum BidState {
-  BIDDING,
-  PENDING_SELECTION,
-  SELECTED,
-  REFUNDED,
-  CANCELLED,
-  DEAL_SUCCESSFUL_PAID,
-  DEAL_UNSUCCESSFUL_REFUNDED,
-}
 
 describe("Test Auction BigNumber", function () {
   before(async function () {

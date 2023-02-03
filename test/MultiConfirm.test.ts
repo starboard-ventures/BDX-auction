@@ -81,6 +81,7 @@ describe("Test Auction Multi confirm", function () {
       .to.be.revertedWith('Price not right')
   });
 
+  // first 3 FIL bid of SP1
   it("SP1 bid for auction", async function () {
     // Approve SPs wallet
     await this.mockFil
@@ -96,7 +97,7 @@ describe("Test Auction Multi confirm", function () {
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 
-  it("set SP1 bid deal success first 1 FIL", async function () {
+  it("set SP1 bid deal success first 3 FIL", async function () {
     const payoutAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(
       this.auction.connect(this.sp1).setBidDealSuccess(this.sp1.address, payoutAmount)
@@ -113,7 +114,7 @@ describe("Test Auction Multi confirm", function () {
     expect(await this.mockFil.balanceOf(this.client.address)).to.equal(
       clientBalance
     );
-    expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
+    expect(await this.auction.auctionState()).to.equal(AuctionState.DEAL_MAKING);
   });
 
   it("set SP1 bid incorrect value", async function () {
@@ -220,7 +221,7 @@ describe("Test BOTH Auction Multi confirm", function () {
 
   it("SP1 bid for auction Again", async function () {
     // SP1 Bid
-    const bidAmount = BigInt(1.5 * 10 ** DECIMAL);
+    const bidAmount = BigInt(2.5 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BOTH);
@@ -249,7 +250,7 @@ describe("Test BOTH Auction Multi confirm", function () {
     // SP1 Bid
     const balance = BigInt(100 * 10 ** DECIMAL);
     expect(await this.auction.auctionState())
-      .to.equal(AuctionState.VERIFICATION)
+      .to.equal(AuctionState.DEAL_MAKING)
 
     const sp1Balance = BigInt(2.5 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(sp1Balance);
@@ -293,7 +294,7 @@ describe("Test BOTH Auction Multi confirm", function () {
     expect(await this.mockFil.balanceOf(this.client.address)).to.equal(
       clientBalance
     );
-    expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
+    expect(await this.auction.auctionState()).to.equal(AuctionState.DEAL_MAKING);
   });
 
   it("set SP1 bid deal success rest 1.5 FIL", async function () {

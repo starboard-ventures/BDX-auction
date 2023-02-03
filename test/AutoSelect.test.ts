@@ -85,7 +85,7 @@ describe("Test Auction Multi confirm", function () {
 
     const state =  await this.auction.bids(this.sp1.address)
     expect(state.bidState).to.equal(BidState.SELECTED);
-    expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
+    expect(await this.auction.auctionState()).to.equal(AuctionState.DEAL_MAKING);
   });
 
 });

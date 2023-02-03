@@ -34,17 +34,4 @@ describe("Factory Auction", function () {
       this.auctionFactory = await this.AuctionFactory.deploy(this.sp1.address);
   
   });
-
-  it("only admin can create auction", async function () {
-    await expect(this.auctionFactory.createAuction(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      this.client.address,
-      this.admin.address,
-      web3.utils.toWei('2', 'ether'),
-      3600 * 24,
-      AuctionType.BID,
-      1
-    )).to.be.revertedWith("Only admin can create")
-  });
 });

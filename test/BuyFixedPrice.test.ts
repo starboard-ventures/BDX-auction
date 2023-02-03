@@ -90,6 +90,6 @@ describe("Test Fixed Auction", function () {
     // SP2 selected
     const sp2Balance = BigInt(97 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
-    expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
+    expect(await this.auction.auctionState()).to.equal(AuctionState.DEAL_MAKING);
   });
 });
