@@ -1,8 +1,156 @@
 //SPDX-License-Identifier: Unlicense
+// File: @openzeppelin/contracts/security/ReentrancyGuard.sol
+
+
+// OpenZeppelin Contracts v4.4.1 (security/ReentrancyGuard.sol)
+
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+/**
+ * @dev Contract module that helps prevent reentrant calls to a function.
+ *
+ * Inheriting from `ReentrancyGuard` will make the {nonReentrant} modifier
+ * available, which can be applied to functions to make sure there are no nested
+ * (reentrant) calls to them.
+ *
+ * Note that because there is a single `nonReentrant` guard, functions marked as
+ * `nonReentrant` may not call one another. This can be worked around by making
+ * those functions `private`, and then adding `external` `nonReentrant` entry
+ * points to them.
+ *
+ * TIP: If you would like to learn more about reentrancy and alternative ways
+ * to protect against it, check out our blog post
+ * https://blog.openzeppelin.com/reentrancy-after-istanbul/[Reentrancy After Istanbul].
+ */
+abstract contract ReentrancyGuard {
+    // Booleans are more expensive than uint256 or any type that takes up a full
+    // word because each write operation emits an extra SLOAD to first read the
+    // slot's contents, replace the bits taken up by the boolean, and then write
+    // back. This is the compiler's defense against contract upgrades and
+    // pointer aliasing, and it cannot be disabled.
+
+    // The values being non-zero value makes deployment a bit more expensive,
+    // but in exchange the refund on every call to nonReentrant will be lower in
+    // amount. Since refunds are capped to a percentage of the total
+    // transaction's gas, it is best to keep them low in cases like this one, to
+    // increase the likelihood of the full refund coming into effect.
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+
+    uint256 private _status;
+
+    constructor() {
+        _status = _NOT_ENTERED;
+    }
+
+    /**
+     * @dev Prevents a contract from calling itself, directly or indirectly.
+     * Calling a `nonReentrant` function from another `nonReentrant`
+     * function is not supported. It is possible to prevent this from happening
+     * by making the `nonReentrant` function external, and making it call a
+     * `private` function that does the actual work.
+     */
+    modifier nonReentrant() {
+        // On the first call to nonReentrant, _notEntered will be true
+        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+
+        // Any calls to nonReentrant after this point will fail
+        _status = _ENTERED;
+
+        _;
+
+        // By storing the original value once again, a refund is triggered (see
+        // https://eips.ethereum.org/EIPS/eip-2200)
+        _status = _NOT_ENTERED;
+    }
+}
+
+// File: @openzeppelin/contracts/token/ERC20/IERC20.sol
+
+
+// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)
+
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `to`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `from` to `to` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+}
+
+// File: contracts/Auction.sol
+
 
 enum AuctionType {
     BID,
@@ -39,7 +187,7 @@ contract Auction is ReentrancyGuard {
     struct Bid {
         uint256 bidAmount;
         uint256 bidTime;
-        uint256 bidConfirmed; // 已分批confirm的数额
+        uint256 bidConfirmed;
         BidState bidState;
     }
 
@@ -422,5 +570,76 @@ contract Auction is ReentrancyGuard {
             "Txn sender not admin or client"
         );
         _;
+    }
+}
+
+// File: contracts/AuctionFactory.sol
+
+
+contract AuctionFactory {
+    address[] public auctionAddresses;
+    address public admin;
+
+    event AuctionCreated(
+        address indexed _auctionAddress,
+        address indexed _client,
+        address _admin,
+        uint256 _minPrice,
+        uint256 _fixedPrice,
+        uint256 _biddingTime, // unit s;
+        AuctionType _type,
+        uint256 indexed _id
+    );
+
+    constructor(address _admin) {
+        require(_admin != address(0), "Admin is 0.");
+        admin = _admin;
+    }
+    // for users and admin create auctions.
+    function createAuction(
+        IERC20 _paymentToken,
+        uint256 _minPrice,
+        address _client,
+        address _admin,
+        uint256 _fixedPrice,
+        uint256 _biddingTime, // unit s;
+        AuctionType _type,
+        uint256 _id
+    ) external returns (address) {
+        require(_minPrice >= 0, "MinPrice invalid");
+        require(_client != address(0), "Client is 0");
+        require(_admin != address(0), "Admin is 0");
+        require(_fixedPrice >= 0, "fixedPrice invalid");
+        require(
+            _biddingTime > 0,
+            "bid time invalid."
+        );
+        Auction auction = new Auction(
+            _paymentToken,
+            _minPrice,
+            _client,
+            _admin,
+            _fixedPrice,
+            _biddingTime,
+            _type
+        );
+
+        auctionAddresses.push(address(auction));
+        emit AuctionCreated(
+            address(auction),
+            _client,
+            _admin,
+            _minPrice,
+            _fixedPrice,
+            _biddingTime,
+            _type,
+            _id
+        );
+        return address(auction);
+    }
+
+    // for get all auctions.
+    function getAuctions() external view returns (address[] memory) {
+        return auctionAddresses;
     }
 }

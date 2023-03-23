@@ -1,7 +1,5 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./Auction.sol";
 
 contract AuctionFactory {
@@ -34,10 +32,10 @@ contract AuctionFactory {
         AuctionType _type,
         uint256 _id
     ) external returns (address) {
-        require(_minPrice > 0, "MinPrice invalid");
+        require(_minPrice >= 0, "MinPrice invalid");
         require(_client != address(0), "Client is 0");
         require(_admin != address(0), "Admin is 0");
-        require(_fixedPrice > 0, "fixedPrice invalid");
+        require(_fixedPrice >= 0, "fixedPrice invalid");
         require(
             _biddingTime > 0,
             "bid time invalid."
