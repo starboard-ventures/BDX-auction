@@ -1,4 +1,5 @@
 //SPDX-License-Identifier: Unlicense
+
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
 
@@ -152,6 +153,7 @@ interface IERC20 {
 // File: contracts/Auction.sol
 
 
+
 enum AuctionType {
     BID,
     FIXED,
@@ -163,7 +165,7 @@ enum BidType {
     BUY_NOW
 }
 
-contract Auction is ReentrancyGuard {
+contract BigDataAuction is ReentrancyGuard {
     //Constants for auction
     enum AuctionState {
         BIDDING,
@@ -187,7 +189,7 @@ contract Auction is ReentrancyGuard {
     struct Bid {
         uint256 bidAmount;
         uint256 bidTime;
-        uint256 bidConfirmed;
+        uint256 bidConfirmed; // 已分批confirm的数额
         BidState bidState;
     }
 
@@ -576,7 +578,7 @@ contract Auction is ReentrancyGuard {
 // File: contracts/AuctionFactory.sol
 
 
-contract AuctionFactory {
+contract BigDataExchange {
     address[] public auctionAddresses;
     address public admin;
 
@@ -614,7 +616,7 @@ contract AuctionFactory {
             _biddingTime > 0,
             "bid time invalid."
         );
-        Auction auction = new Auction(
+        BigDataAuction auction = new BigDataAuction(
             _paymentToken,
             _minPrice,
             _client,

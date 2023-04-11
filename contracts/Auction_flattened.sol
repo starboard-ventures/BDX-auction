@@ -2,7 +2,6 @@
 
 // File: @openzeppelin/contracts/security/ReentrancyGuard.sol
 
-
 // OpenZeppelin Contracts v4.4.1 (security/ReentrancyGuard.sol)
 
 pragma solidity ^0.8.0;
@@ -152,6 +151,7 @@ interface IERC20 {
 // File: contracts/Auction.sol
 
 
+
 enum AuctionType {
     BID,
     FIXED,
@@ -163,7 +163,7 @@ enum BidType {
     BUY_NOW
 }
 
-contract Auction is ReentrancyGuard {
+contract BigDataAuction is ReentrancyGuard {
     //Constants for auction
     enum AuctionState {
         BIDDING,

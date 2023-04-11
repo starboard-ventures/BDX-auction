@@ -15,7 +15,7 @@ enum BidType {
     BUY_NOW
 }
 
-contract Auction is ReentrancyGuard {
+contract BigDataAuction is ReentrancyGuard {
     //Constants for auction
     enum AuctionState {
         BIDDING,

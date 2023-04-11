@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 import "./Auction.sol";
 
-contract AuctionFactory {
+contract BigDataExchange {
     address[] public auctionAddresses;
     address public admin;
 
@@ -40,7 +40,7 @@ contract AuctionFactory {
             _biddingTime > 0,
             "bid time invalid."
         );
-        Auction auction = new Auction(
+        BigDataAuction auction = new BigDataAuction(
             _paymentToken,
             _minPrice,
             _client,
