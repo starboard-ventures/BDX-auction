@@ -7,15 +7,33 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-struct Collection {
-    uint256 volume;
-    uint256 price;
-    string uri;
-    address owner;
-    bool exist;
-}
+/**
+ *
+ *       ,---,.     ,---,    ,--,     ,--,
+ *     ,'  .'  \  .'  .' `\  |'. \   / .`|
+ *   ,---.' .' |,---.'     \ ; \ `\ /' / ;
+ *   |   |  |: ||   |  .`\  |`. \  /  / .'
+ *   :   :  :  /:   : |  '  | \  \/  / ./
+ *   :   |    ; |   ' '  ;  :  \  \.'  /
+ *   |   :     \'   | ;  .  |   \  ;  ;
+ *   |   |   . ||   | :  |  '  / \  \  \
+ *   '   :  '; |'   : | /  ;  ;  /\  \  \
+ *   |   |  | ; |   | '` ,/ ./__;  \  ;  \
+ *   |   :   /  ;   :  .'   |   : / \  \  ;
+ *   |   | ,'   |   ,.'     ;   |/   \  ' |
+ *   `----'     '---'       `---'     `--`
+ *  BDX Data Collection Smart Contract
+ */
 
 contract BDX is ERC1155, ERC1155Burnable, Ownable, ERC1155Supply {
+    struct Collection {
+        uint256 volume;
+        uint256 price;
+        string uri;
+        address owner;
+        bool exist;
+    }
+
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIdCounter =
@@ -71,7 +89,7 @@ contract BDX is ERC1155, ERC1155Burnable, Ownable, ERC1155Supply {
             totalSupply(id) + amount <= collection.volume,
             "Exceed the volumn"
         );
-        uint256 fee = amount * (collection.price * MintFeePercent) / 100;
+        uint256 fee = (amount * (collection.price * MintFeePercent)) / 100;
         require(msg.value == amount * collection.price, "require MintFee");
         payable(owner()).transfer(fee);
         payable(collection.owner).transfer(amount * collection.price - fee);
@@ -84,11 +102,7 @@ contract BDX is ERC1155, ERC1155Burnable, Ownable, ERC1155Supply {
     }
 
     // Don't allow to mint batch.
-    function mintBatch()
-        public
-        view
-        onlyOwner
-    {
+    function mintBatch() public view onlyOwner {
         revert("Not allowed");
         // _mintBatch(to, ids, amounts, data);
     }
