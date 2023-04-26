@@ -46,6 +46,7 @@ contract BDX is ERC1155, ERC1155Burnable, Ownable, ERC1155Supply {
     mapping(uint256 => Collection) public collections;
 
     event CollectionCreated(address _owner, uint256 _id);
+    event DeleteCollectionCreated(uint256 _id);
 
     constructor() ERC1155("") {}
 
@@ -75,6 +76,7 @@ contract BDX is ERC1155, ERC1155Burnable, Ownable, ERC1155Supply {
         Collection storage collection = collections[id];
         require(collection.exist, "Collection not exist");
         delete collections[id];
+        emit DeleteCollectionCreated(id);
     }
 
     function mint(
@@ -99,6 +101,14 @@ contract BDX is ERC1155, ERC1155Burnable, Ownable, ERC1155Supply {
     function uri(uint256 id) public view override returns (string memory) {
         Collection storage coll = collections[id];
         return coll.uri;
+    }
+
+    function setMintFeePercent(uint256 percent) external onlyOwner {
+        MintFeePercent = percent;
+    }
+
+    function setCreateFee(uint256 fee) external onlyOwner {
+        CreateFee = fee;
     }
 
     // Don't allow to mint batch.
