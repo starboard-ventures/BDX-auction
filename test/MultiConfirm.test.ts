@@ -2,6 +2,7 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
 import { AuctionType, BidType, AuctionState, BidState } from './_utils'
+import { createAuction } from "./helper";
 const DECIMAL = 18;
 
 /**
@@ -13,50 +14,18 @@ const DECIMAL = 18;
 
 describe("Test Auction Multi confirm", function () {
   before(async function () {
-    const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
+    const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
+      type: AuctionType.FIXED,
+      minPrice: 1,
+      fixedPrice: 3
+    });
     this.admin = _admin;
     this.client = _client;
     this.sp1 = _sp1;
     this.sp2 = _sp2;
     this.sp3 = _sp3;
-    this.MockFil = await ethers.getContractFactory("MockFil");
-
-    this.mockFil = await this.MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
-    await this.mockFil.deployed();
-
-    // Seed sps with funds
-    const seedAmount = BigInt(100 * 10 ** DECIMAL);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp1.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp2.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp3.address, seedAmount);
-
-    this.Auction = await ethers.getContractFactory("Auction");
-    /**
-     * _paymentToken,
-     * _minPrice,
-     * _noOfCopies,
-     * _client,
-     * _admin,
-     * _fixedPrice,
-     * _biddingTime,
-     * _type
-     */
-
-    this.auction = await this.Auction.deploy(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      this.client.address,
-      this.admin.address,
-      BigInt(3 * 10 ** DECIMAL),
-      3600 * 24,
-      AuctionType.FIXED,
-    );
+    this.mockFil = mockFil
+    this.auction = auction;
   });
 
   it("SP1 bid wrong type for fixed auciton", async function () {
@@ -78,7 +47,7 @@ describe("Test Auction Multi confirm", function () {
     // SP1 Bid
     const bidAmount = BigInt(4 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
-      .to.be.revertedWith('Price not right')
+      .to.be.revertedWith('Total price not right')
   });
 
   it("SP1 bid for auction", async function () {
@@ -142,50 +111,18 @@ describe("Test Auction Multi confirm", function () {
 
 describe("Test BOTH Auction Multi confirm", function () {
   before(async function () {
-    const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
+    const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
+      type: AuctionType.BOTH,
+      minPrice: 1,
+      fixedPrice: 3
+    });
     this.admin = _admin;
     this.client = _client;
     this.sp1 = _sp1;
     this.sp2 = _sp2;
     this.sp3 = _sp3;
-    this.MockFil = await ethers.getContractFactory("MockFil");
-
-    this.mockFil = await this.MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
-    await this.mockFil.deployed();
-
-    // Seed sps with funds
-    const seedAmount = BigInt(100 * 10 ** DECIMAL);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp1.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp2.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp3.address, seedAmount);
-
-    this.Auction = await ethers.getContractFactory("Auction");
-    /**
-     * _paymentToken,
-     * _minPrice,
-     * _noOfCopies,
-     * _client,
-     * _admin,
-     * _fixedPrice,
-     * _biddingTime,
-     * _type
-     */
-
-    this.auction = await this.Auction.deploy(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      this.client.address,
-      this.admin.address,
-      BigInt(3 * 10 ** DECIMAL),
-      3600 * 24,
-      AuctionType.BOTH,
-    );
+    this.mockFil = mockFil
+    this.auction = auction;
   });
 
   it("SP1 bid for auction", async function () {

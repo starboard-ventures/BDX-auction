@@ -3,56 +3,22 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { AuctionType, BidType, AuctionState, BidState } from './_utils'
 import web3 from 'web3'
+import { createAuction } from "./helper";
 const DECIMAL = 18;
 
 describe("Test Fixed Auction", function () {
   before(async function () {
-    const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
+    const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
+      type: AuctionType.BOTH,
+      fixedPrice: 3,
+    });
     this.admin = _admin;
     this.client = _client;
     this.sp1 = _sp1;
     this.sp2 = _sp2;
     this.sp3 = _sp3;
-    this.MockFil = await ethers.getContractFactory("MockFil");
-
-    this.mockFil = await this.MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
-    await this.mockFil.deployed();
-
-    // Seed sps with funds
-    const seedAmount = BigInt(100 * 10 ** DECIMAL);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp1.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp2.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp3.address, seedAmount);
-
-    this.Auction = await ethers.getContractFactory("Auction");
-    /**
-     * _paymentToken,
-     * _minPrice,
-     * _noOfCopies,
-     * _client,
-     * _admin,
-     * _fixedPrice,
-     * _biddingTime,
-     * _type
-     */
-
-    this.auction = await this.Auction.deploy(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      this.client.address,
-      this.admin.address,
-      web3.utils.toWei('3', 'ether'),
-      3600 * 24,
-      AuctionType.BOTH
-    );
-    const tp = await this.auction.fixedPrice()
-    console.log(tp.toString())
+    this.mockFil = mockFil
+    this.auction = auction;
   });
 
   it("SP1 bid for auction", async function () {
@@ -72,7 +38,7 @@ describe("Test Fixed Auction", function () {
       .connect(this.sp2)
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP2 Buy
-    const bidAmount = BigInt(4 * 10 ** DECIMAL);
+    const bidAmount = BigInt(2 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW)).to.be.revertedWith('Total price not right')
   });
 

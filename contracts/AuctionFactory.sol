@@ -1,10 +1,30 @@
-//SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
+
 import "./Auction.sol";
+
+/**
+ *
+ *       ,---,.     ,---,    ,--,     ,--,
+ *     ,'  .'  \  .'  .' `\  |'. \   / .`|
+ *   ,---.' .' |,---.'     \ ; \ `\ /' / ;
+ *   |   |  |: ||   |  .`\  |`. \  /  / .'
+ *   :   :  :  /:   : |  '  | \  \/  / ./
+ *   :   |    ; |   ' '  ;  :  \  \.'  /
+ *   |   :     \'   | ;  .  |   \  ;  ;
+ *   |   |   . ||   | :  |  '  / \  \  \
+ *   '   :  '; |'   : | /  ;  ;  /\  \  \
+ *   |   |  | ; |   | '` ,/ ./__;  \  ;  \
+ *   |   :   /  ;   :  .'   |   : / \  \  ;
+ *   |   | ,'   |   ,.'     ;   |/   \  ' |
+ *   `----'     '---'       `---'     `--`
+ *  BDX Smart Contract
+ */
 
 contract BigDataExchange {
     address[] public auctionAddresses;
     address public admin;
+    address public eventBus; 
 
     event AuctionCreated(
         address indexed _auctionAddress,
@@ -17,9 +37,11 @@ contract BigDataExchange {
         uint256 indexed _id
     );
 
-    constructor(address _admin) {
+    constructor(address _admin, address _eventBus) {
         require(_admin != address(0), "Admin is 0.");
+        require(_eventBus != address(0), "EventBus is 0.");
         admin = _admin;
+        eventBus = _eventBus;
     }
     // for users and admin create auctions.
     function createAuction(
@@ -28,8 +50,9 @@ contract BigDataExchange {
         address _client,
         address _admin,
         uint256 _fixedPrice,
-        uint256 _biddingTime, // unit s;
+        uint256 _endTime, // unit s;
         AuctionType _type,
+        string memory _metaUri,
         uint256 _id
     ) external returns (address) {
         require(_minPrice >= 0, "MinPrice invalid");
@@ -37,8 +60,8 @@ contract BigDataExchange {
         require(_admin != address(0), "Admin is 0");
         require(_fixedPrice >= 0, "fixedPrice invalid");
         require(
-            _biddingTime > 0,
-            "bid time invalid."
+            _endTime > block.timestamp,
+            "end time invalid."
         );
         BigDataAuction auction = new BigDataAuction(
             _paymentToken,
@@ -46,8 +69,10 @@ contract BigDataExchange {
             _client,
             _admin,
             _fixedPrice,
-            _biddingTime,
-            _type
+            _endTime,
+            _type,
+            eventBus,
+            _metaUri
         );
 
         auctionAddresses.push(address(auction));
@@ -57,7 +82,7 @@ contract BigDataExchange {
             _admin,
             _minPrice,
             _fixedPrice,
-            _biddingTime,
+            _endTime,
             _type,
             _id
         );
@@ -67,5 +92,11 @@ contract BigDataExchange {
     // for get all auctions.
     function getAuctions() external view returns (address[] memory) {
         return auctionAddresses;
+    }
+
+    function setEventBus(address _eventBus) external {
+        require(msg.sender == admin, "Not admin.");
+        require(_eventBus != address(0), "Invalid");
+        eventBus = _eventBus;
     }
 }

@@ -3,7 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { AuctionType, BidType, AuctionState, BidState } from './_utils'
 const DECIMAL = 18;
-
+import { createAuction } from "./helper";
 /**
  * 1. bid with fixed price 3 FIL
  * 2. confirm 1 FIL
@@ -11,52 +11,19 @@ const DECIMAL = 18;
  * 4. auction completed
  */
 
-describe("Test Auction Multi confirm", function () {
+describe("Test Auto Select", function () {
   before(async function () {
-    const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
+    const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
+      type: AuctionType.BOTH,
+      fixedPrice: 3,
+    });
     this.admin = _admin;
     this.client = _client;
     this.sp1 = _sp1;
     this.sp2 = _sp2;
     this.sp3 = _sp3;
-    this.MockFil = await ethers.getContractFactory("MockFil");
-
-    this.mockFil = await this.MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
-    await this.mockFil.deployed();
-
-    // Seed sps with funds
-    const seedAmount = BigInt(100 * 10 ** DECIMAL);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp1.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp2.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp3.address, seedAmount);
-
-    this.Auction = await ethers.getContractFactory("Auction");
-    /**
-     * _paymentToken,
-     * _minPrice,
-     * _noOfCopies,
-     * _client,
-     * _admin,
-     * _fixedPrice,
-     * _biddingTime,
-     * _type
-     */
-
-    this.auction = await this.Auction.deploy(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      this.client.address,
-      this.admin.address,
-      BigInt(3 * 10 ** DECIMAL),
-      3600 * 24,
-      AuctionType.BOTH,
-    );
+    this.mockFil = mockFil
+    this.auction = auction;
   });
 
   it("SP1 bid for auction", async function () {

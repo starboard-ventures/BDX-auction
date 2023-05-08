@@ -3,81 +3,23 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import web3 from 'web3'
 import BN from 'bignumber.js'
+import { AuctionType, BidType, AuctionState, BidState } from './_utils'
+import { createAuction } from "./helper";
 const DECIMAL = 18;
 
-enum AuctionType {
-  BID,
-  FIXED,
-  BOTH
-}
-
-enum BidType {
-  BID,
-  BUY_NOW
-}
-
-enum AuctionState {
-  BIDDING,
-  NO_BID_CANCELLED,
-  SELECTION,
-  VERIFICATION,
-  CANCELLED,
-  COMPLETED,
-}
-
-enum BidState {
-  BIDDING,
-  PENDING_SELECTION,
-  SELECTED,
-  REFUNDED,
-  CANCELLED,
-  DEAL_SUCCESSFUL_PAID,
-  DEAL_UNSUCCESSFUL_REFUNDED,
-}
 
 describe("Test Auction", function () {
   before(async function () {
-    const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
+    const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
+      type: AuctionType.BID,
+    });
     this.admin = _admin;
     this.client = _client;
     this.sp1 = _sp1;
     this.sp2 = _sp2;
     this.sp3 = _sp3;
-    this.MockFil = await ethers.getContractFactory("MockFil");
-
-    this.mockFil = await this.MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
-    await this.mockFil.deployed();
-
-    // Seed sps with funds
-    const seedAmount = BigInt(100 * 10 ** DECIMAL);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp1.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp2.address, seedAmount);
-    await this.mockFil
-      .connect(this.admin)
-      .transfer(this.sp3.address, seedAmount);
-
-    this.Auction = await ethers.getContractFactory("Auction");
-    // _paymentToken,
-    // _minPrice,
-    // _noOfCopies,
-    // _client,
-    // _admin,
-    // _fixedPrice,
-    // _biddingTime,
-    // _type
-    this.auction = await this.Auction.deploy(
-      this.mockFil.address,
-      BigInt(1 * 10 ** DECIMAL),
-      this.client.address,
-      this.admin.address,
-      web3.utils.toWei('3', 'ether'),
-      3600 * 24,
-      AuctionType.BID
-    );
+    this.mockFil = mockFil
+    this.auction = auction;
 
   });
 
@@ -88,6 +30,7 @@ describe("Test Auction", function () {
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // const bidTime = parseInt(new Date().getTime().toFixed(10));
     // SP1 Bid
+    console.log(await this.mockFil.balanceOf(this.sp1.address))
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")

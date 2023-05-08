@@ -3,6 +3,7 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import web3 from 'web3'
 import { AuctionState, BidState, AuctionType, BidType } from './_utils'
+import { createAuction } from "./helper";
 const DECIMAL = 18;
 
 describe("Factory Auction", function () {
