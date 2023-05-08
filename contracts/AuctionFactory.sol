@@ -58,10 +58,10 @@ contract BigDataExchange {
         require(_minPrice >= 0, "MinPrice invalid");
         require(_client != address(0), "Client is 0");
         require(_admin != address(0), "Admin is 0");
-        require(_fixedPrice >= 0, "fixedPrice invalid");
+        require(_fixedPrice >= 0, "FixedPrice invalid");
         require(
             _endTime > block.timestamp,
-            "end time invalid."
+            "Endtime invalid."
         );
         BigDataAuction auction = new BigDataAuction(
             _paymentToken,
