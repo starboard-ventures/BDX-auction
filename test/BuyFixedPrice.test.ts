@@ -9,8 +9,8 @@ const DECIMAL = 18;
 describe("Test Fixed Auction", function () {
   before(async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
-      type: AuctionType.BOTH,
-      fixedPrice: 3,
+      price: 3,
+      funds: 100,
     });
     this.admin = _admin;
     this.client = _client;
@@ -48,7 +48,7 @@ describe("Test Fixed Auction", function () {
       .connect(this.sp2)
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP2 Buy
-    const bidAmount = BigInt(3 * 10 ** DECIMAL);
+    const bidAmount = web3.utils.toWei('3', 'ether');
     await this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW)
     // SP1 refund
     const sp1Balance = BigInt(100 * 10 ** DECIMAL);

@@ -49,7 +49,8 @@ export const createAuction = async (params?: any) => {
   await offer.connect(_admin).setFactory([auctionFactory.address])
 
   const deployedAuction = await auctionFactory.createAuction(
-    BigInt((input.price) * 10 ** DECIMAL),
+    // BigInt((input.price) * 10 ** DECIMAL),
+    web3.utils.toWei(input.price + '', 'ether'),
     input.size,
     // web3.utils.toWei('1', 'ether'),
     _client.address,

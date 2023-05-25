@@ -15,9 +15,7 @@ const DECIMAL = 18;
 describe("Test Auction Multi confirm", function () {
   before(async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
-      type: AuctionType.FIXED,
-      minPrice: 1,
-      fixedPrice: 3
+      price: 3
     });
     this.admin = _admin;
     this.client = _client;
@@ -35,8 +33,7 @@ describe("Test Auction Multi confirm", function () {
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP1 Bid
     const bidAmount = BigInt(3 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
-    .to.be.revertedWith("bidType not right")
+
   });
 
   it("SP1 bid wrong price for auction", async function () {
@@ -59,7 +56,7 @@ describe("Test Auction Multi confirm", function () {
     const bidAmount = BigInt(3 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW, AuctionType.FIXED);
+      .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW);
 
     const sp1Balance = BigInt(97 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -112,9 +109,7 @@ describe("Test Auction Multi confirm", function () {
 describe("Test BOTH Auction Multi confirm", function () {
   before(async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
-      type: AuctionType.BOTH,
-      minPrice: 1,
-      fixedPrice: 3
+      price: 3
     });
     this.admin = _admin;
     this.client = _client;
@@ -134,7 +129,7 @@ describe("Test BOTH Auction Multi confirm", function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp1Balance = BigInt(99 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -149,7 +144,7 @@ describe("Test BOTH Auction Multi confirm", function () {
     const bidAmount = BigInt(2 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp2Balance = BigInt(98 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
@@ -160,7 +155,7 @@ describe("Test BOTH Auction Multi confirm", function () {
     const bidAmount = BigInt(1.5 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp1Balance = BigInt(97.5 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);

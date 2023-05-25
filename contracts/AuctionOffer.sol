@@ -58,7 +58,8 @@ struct BidOffer {
     uint256 totalValue;
     uint256 totalSize;
     uint256 minSize;
-    uint256 available;
+    uint256 validValue;
+    uint256 validSize;
     uint256 createTime;
     OfferStatus status;
     OfferType offerType;
@@ -71,15 +72,22 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
     Counters.Counter private _offerId;
     IERC20 public token;
 
-    address public admin;
     address[] public factorys;
     address[] public dealsList;
     mapping(uint256 => BidOffer) public bidOffers;
     mapping(address => Deal) public deals;
+    mapping(address => bool) public _isBlacklisted;
+
+    event OfferCreated(
+        uint256 indexed id,
+        address indexed owner
+    );
+
+    event OfferCancelled(uint256 indexed id, address indexed sender);
+    event OfferAccepted(uint256 indexed id, address indexed owner, address indexed auction);
 
     constructor(address _token) {
         require(_token != address(0), "invalid _token");
-        admin = msg.sender;
         token = IERC20(_token);
     }
 
@@ -87,12 +95,7 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         factorys = _addrs;
     }
 
-    // function addFactory() public {
-    //     require(tx.origin == admin, "invalid");
-    //     factorys.push(msg.sender)
-    // }
-
-    function makeOffer(
+    function createOffer(
         uint256 _value,
         uint256 _size,
         uint256 _minSize,
@@ -101,6 +104,7 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         require(_value > 0, "value not > 0");
         require(_size > 0, "size not > 0");
         require(token.balanceOf(msg.sender) >= _value, "balance not enough");
+        require(!_isBlacklisted[msg.sender], "blacklisted address");
         uint256 _allowance = token.allowance(msg.sender, address(this));
         if (_allowance < _value) {
             token.approve(address(this), _allowance + _value);
@@ -112,22 +116,25 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         g.totalSize = _size;
         g.totalValue = _value;
         g.minSize = _minSize;
-        g.available = _value;
+        g.validValue = _value;
+        g.validSize = _size;
         g.offerType = _type;
         g.createTime = block.timestamp;
+        emit OfferCreated(_offerId.current() - 1, msg.sender);
     }
 
-    function cancleOffer(uint256 _id) external nonReentrant {
+    function cancelOffer(uint256 _id) external nonReentrant {
         BidOffer storage g = bidOffers[_id];
         require(
-            msg.sender == g.owner || msg.sender == admin,
+            msg.sender == g.owner || msg.sender == owner(),
             "not owner or admin"
         );
         require(g.status == OfferStatus.Active, "status not active");
-        require(g.available > 0, "no available token");
-        g.available = 0;
+        require(g.validValue > 0, "no available token");
+        g.validValue = 0;
+        g.validSize = 0;
         g.status = OfferStatus.Cancelled;
-        // token.transfer(g.owner, g.available);
+        emit OfferCancelled(_id, msg.sender);
     }
 
     function bidOffer(address _auction, uint256 _id) external nonReentrant {
@@ -138,25 +145,32 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         require(au.client() == msg.sender, "invalid client");
         uint256 size = au.size();
         uint256 price = au.price();
-        require(price <= offer.available, "price not enough");
+        require(price <= offer.validValue, "price not enough");
+        require(size <= offer.validSize, "size not enough");
         require(size >= offer.minSize, "size invalid");
         require(
             price / size <= offer.totalValue / offer.totalSize,
             "unit price invalid"
         );
         require(token.transferFrom(offer.owner, _auction, price), "pay failed");
-        // token.transfer(_auction, price);
         au.offerBid(offer.owner);
         Deal memory deal = Deal(price, size, block.timestamp);
         offer.deals.push(_auction);
         dealsList.push(_auction);
         deals[_auction] = deal;
         if (offer.offerType == OfferType.Single) {
-            offer.available = 0;
+            offer.validValue = 0;
+            offer.validSize = 0;
             offer.status = OfferStatus.Cancelled;
         } else {
-            offer.available -= price;
+            offer.validValue -= price;
+            offer.validSize -= size;
         }
+        emit OfferAccepted(_id, offer.owner, _auction);
+    }
+
+    function setBlacklist(address _addr, bool _isBlacklist) external onlyOwner {
+        _isBlacklisted[_addr] = _isBlacklist;
     }
 
     function isValidAuction(address _addr) internal returns (bool) {
