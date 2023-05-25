@@ -9,7 +9,8 @@ enum AuctionType {
 
 enum BidType {
     BID,
-    BUY_NOW
+    BUY_NOW,
+    OFFER
 }
 
 enum AuctionState {
@@ -36,6 +37,7 @@ struct Bid {
     uint256 bidTime;
     uint256 bidConfirmed;
     BidState bidState;
+    BidType bidType;
 }
 
 interface IEventBus {

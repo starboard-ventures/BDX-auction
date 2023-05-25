@@ -25,12 +25,11 @@ import "./Types.sol";
 
 contract BigDataAuction is ReentrancyGuard {
     AuctionState public auctionState;
-    AuctionType public auctionType;
     uint256 public startTime;
     uint256 public endTime;
-    uint256 public minPrice;
-    uint256 public fixedPrice;
-    int8 public version = 5;
+    uint256 public price;
+    uint256 public size; //unit TiB
+    int8 public version = 6;
 
     address[] public bidders;
     mapping(address => Bid) public bids;
@@ -41,26 +40,23 @@ contract BigDataAuction is ReentrancyGuard {
 
     IEventBus private eventBus;
     IERC20 private paymentToken;
+    address public offerManager;
 
     string public metaUri;
 
     event AuctionCreated(
         address indexed _client,
-        uint256 _minPrice,
-        uint256 _fixedPrice,
-        AuctionState _auctionState,
-        AuctionType _type
+        uint256 _price,
+        AuctionState _auctionState
     );
     event BidPlaced(
         address indexed _bidder,
         uint256 _value,
         BidState _bidState,
-        BidType _bidType,
-        AuctionType _auctionType
+        BidType _bidType
     );
     event BiddingEnded();
     event BidSelected(address indexed _bidder, uint256 _value);
-    event SelectionEnded();
     event AuctionCancelled();
     event AuctionCancelledNoBids();
     event BidsUnselectedRefunded(uint32 _count);
@@ -79,12 +75,12 @@ contract BigDataAuction is ReentrancyGuard {
 
     constructor(
         IERC20 _paymentToken,
-        uint256 _minPrice,
+        uint256 _price,
+        uint256 _size,
         address _client,
         address _admin,
-        uint256 _fixedPrice,
         uint256 _endTime,
-        AuctionType _type,
+        address _offerManager,
         address _eventBus,
         string memory _metaUri
     ) {
@@ -92,22 +88,16 @@ contract BigDataAuction is ReentrancyGuard {
         eventBus = IEventBus(_eventBus);
         metaUri = _metaUri;
         paymentToken = IERC20(_paymentToken);
-
-        minPrice = _minPrice;
-        fixedPrice = _fixedPrice;
+        offerManager = _offerManager;
+        price = _price;
+        size = _size;
+        // minPrice = _price;
+        // fixedPrice = _price;
         updateState(AuctionState.BIDDING);
-        auctionType = _type;
         client = _client;
         startTime = block.timestamp;
         endTime = _endTime;
-        emit AuctionCreated(
-            client,
-            minPrice,
-            fixedPrice,
-            auctionState,
-            auctionType
-        );
-        eventBus.trigger("AuctionCreated");
+        emitEvents("AuctionCreated");
     }
 
     //SPs place bid
@@ -117,7 +107,7 @@ contract BigDataAuction is ReentrancyGuard {
         nonReentrant
     {
         require(auctionState == AuctionState.BIDDING, "Auction not BIDDING");
-        require(_bid > 0, "Bid not > 0");
+        require(_bid >= 0, "Bid not >= 0");
         require(getAllowance(msg.sender) >= _bid, "Insufficient allowance");
         require(
             _bid <= paymentToken.balanceOf(msg.sender),
@@ -126,12 +116,8 @@ contract BigDataAuction is ReentrancyGuard {
         if (!hasBidded(msg.sender)) {
             bidders.push(msg.sender);
         }
-        if (auctionType == AuctionType.FIXED) {
-            require(_bidType == BidType.BUY_NOW, "bidType not right");
-            buyAndSelect(_bid);
-            return;
-        } else if (
-            auctionType == AuctionType.BOTH && _bidType == BidType.BUY_NOW
+        if (
+            _bidType == BidType.BUY_NOW
         ) {
             buyAndSelect(_bid);
             return;
@@ -142,8 +128,9 @@ contract BigDataAuction is ReentrancyGuard {
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
         b.bidState = BidState.BIDDING;
+        b.bidType = BidType.BID;
         emitEvents("BidPlaced");
-        emit BidPlaced(msg.sender, _bid, b.bidState, _bidType, auctionType);
+        emit BidPlaced(msg.sender, _bid, b.bidState, _bidType);
     }
 
     function endBidding() public onlyClientOrAdmin {
@@ -203,7 +190,6 @@ contract BigDataAuction is ReentrancyGuard {
             }
         }
         selectBid(winner);
-        emit SelectionEnded();
     }
 
     function cancelAuction() public onlyClientOrAdmin {
@@ -279,6 +265,30 @@ contract BigDataAuction is ReentrancyGuard {
         );
     }
 
+    // general bid
+    function offerBid (address _bider) public returns(bool) {
+        require(msg.sender == offerManager, "invalid caller");
+        require(_bider != address(0), "invalid bidder");
+        require(auctionState == AuctionState.BIDDING || auctionState == AuctionState.SELECTION, "Auction not BIDDING or SELECTION");
+        require(!hasBidded(_bider), "bidder has bidded");
+        bidders.push(_bider);
+        Bid storage b = bids[_bider];
+        b.bidState = BidState.SELECTED;
+        b.bidAmount = price;
+        b.bidTime = block.timestamp;
+        b.bidType = BidType.OFFER;
+        refundOthers(_bider);
+        updateState(AuctionState.VERIFICATION);
+        emitEvents("BidPlaced");
+        emit BidPlaced(
+            _bider,
+            price,
+            b.bidState,
+            BidType.OFFER
+        );
+        return true;
+    }
+
     //Helper Functions
     function getAllowance(address sender) public view returns (uint256) {
         return paymentToken.allowance(sender, address(this));
@@ -286,11 +296,12 @@ contract BigDataAuction is ReentrancyGuard {
 
     function buyAndSelect(uint256 _bid) internal {
         Bid storage b = bids[msg.sender];
-        require(_bid + b.bidAmount == fixedPrice, "Total price not right");
+        require(_bid + b.bidAmount == price, "Total price not right");
         paymentToken.transferFrom(msg.sender, address(this), _bid);
         b.bidState = BidState.SELECTED;
         b.bidAmount = _bid + b.bidAmount;
         b.bidTime = block.timestamp;
+        b.bidType = BidType.BUY_NOW;
         refundOthers(msg.sender);
         updateState(AuctionState.VERIFICATION);
         emitEvents("BidPlaced");
@@ -298,14 +309,13 @@ contract BigDataAuction is ReentrancyGuard {
             msg.sender,
             _bid,
             b.bidState,
-            BidType.BUY_NOW,
-            auctionType
+            BidType.BUY_NOW
         );
     }
 
     function hasBidded(address bidder) private view returns (bool) {
         Bid storage b = bids[bidder];
-        return b.bidAmount > 0;
+        return b.bidTime > 0;
     }
 
     function refundAllBids() internal {

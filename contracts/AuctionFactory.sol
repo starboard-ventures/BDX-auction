@@ -24,53 +24,50 @@ import "./Auction.sol";
 contract BigDataExchange {
     address[] public auctionAddresses;
     address public admin;
-    address public eventBus; 
+    address public eventBus;
+    address public offerAddr;
+    address public paymentToken;
 
     event AuctionCreated(
         address indexed _auctionAddress,
         address indexed _client,
         address _admin,
-        uint256 _minPrice,
-        uint256 _fixedPrice,
-        uint256 _biddingTime, // unit s;
-        AuctionType _type,
+        uint256 _price,
+        uint256 _endTime, // unit s;
         uint256 indexed _id
     );
 
-    constructor(address _admin, address _eventBus) {
+    constructor(address _admin, address _eventBus, address _offerAddr, address _paymentToken) {
         require(_admin != address(0), "Admin is 0.");
         require(_eventBus != address(0), "EventBus is 0.");
+        require(_offerAddr != address(0), "EventBus is 0.");
+        require(_paymentToken != address(0), "EventBus is 0.");
         admin = _admin;
         eventBus = _eventBus;
+        offerAddr = _offerAddr;
+        paymentToken = _paymentToken;
     }
+
     // for users and admin create auctions.
     function createAuction(
-        IERC20 _paymentToken,
-        uint256 _minPrice,
+        uint256 _price,
+        uint256 _size,
         address _client,
-        address _admin,
-        uint256 _fixedPrice,
-        uint256 _endTime, // unit s;
-        AuctionType _type,
+        uint256 _endTime,
         string memory _metaUri,
         uint256 _id
-    ) external returns (address) {
-        require(_minPrice >= 0, "MinPrice invalid");
+    ) public returns (address) {
         require(_client != address(0), "Client is 0");
-        require(_admin != address(0), "Admin is 0");
-        require(_fixedPrice >= 0, "FixedPrice invalid");
-        require(
-            _endTime > block.timestamp,
-            "Endtime invalid."
-        );
+        require(_price >= 0, "_price invalid");
+        require(_endTime > block.timestamp, "Endtime invalid.");
         BigDataAuction auction = new BigDataAuction(
-            _paymentToken,
-            _minPrice,
+            IERC20(paymentToken),
+            _price,
+            _size,
             _client,
-            _admin,
-            _fixedPrice,
+            admin,
             _endTime,
-            _type,
+            offerAddr,
             eventBus,
             _metaUri
         );
@@ -79,11 +76,9 @@ contract BigDataExchange {
         emit AuctionCreated(
             address(auction),
             _client,
-            _admin,
-            _minPrice,
-            _fixedPrice,
+            admin,
+            _price,
             _endTime,
-            _type,
             _id
         );
         return address(auction);
@@ -98,5 +93,25 @@ contract BigDataExchange {
         require(msg.sender == admin, "Not admin.");
         require(_eventBus != address(0), "Invalid");
         eventBus = _eventBus;
+    }
+
+    function hasAuction(address _addr) public view returns (bool) {
+        for (uint256 i = 0; i < auctionAddresses.length; i++) {
+            if (auctionAddresses[i] == _addr) return true;
+        }
+        return false;
+    }
+
+    function testMultiAuctions() external {
+        for(uint256 i = 0; i < 10; i++) {
+            createAuction(
+                10 ether,
+                200,
+                msg.sender,
+                block.timestamp + 20000,
+                "",
+                1
+            );
+        }
     }
 }

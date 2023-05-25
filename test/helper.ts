@@ -7,9 +7,11 @@ export const createAuction = async (params?: any) => {
   params = params || {};
   const input = {
     funds: 100,
-    minPrice: 1,
-    type: AuctionType.BOTH,
-    fixedPrice: 5,
+    // minPrice: 1,
+    price: 5,
+    // fixedPrice: 5,
+    size: 100,
+    // type: AuctionType.BOTH,
     endTime: ((Date.now() + 10 * 60 * 1000) / 1000) >>> 0,
     ...params
   }
@@ -18,10 +20,13 @@ export const createAuction = async (params?: any) => {
   
   const MockFil = await ethers.getContractFactory("MockFil");
   const EventBus = await ethers.getContractFactory("BigDataExchangeEvents");
+  const OfferContract = await ethers.getContractFactory("BigDataExchangeOffer");
 
   const mockFil = await MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
-  const eventBus = await EventBus.deploy();
   await mockFil.deployed();
+  const offer = await OfferContract.deploy(mockFil.address);
+  const eventBus = await EventBus.deploy();
+  await offer.deployed();
   await eventBus.deployed();
 
   // Seed sps with funds
@@ -38,20 +43,21 @@ export const createAuction = async (params?: any) => {
 
   const Auction = await ethers.getContractFactory("BigDataAuction");
   const AuctionFactory = await ethers.getContractFactory("BigDataExchange");
-  const auctionFactory = await AuctionFactory.deploy(_admin.address, eventBus.address);
+  const auctionFactory = await AuctionFactory.deploy(_admin.address, eventBus.address, offer.address, mockFil.address);
   await auctionFactory.deployed();
 
+  await offer.connect(_admin).setFactory([auctionFactory.address])
+
   const deployedAuction = await auctionFactory.createAuction(
-    mockFil.address,
-    BigInt((input.minPrice) * 10 ** DECIMAL),
+    BigInt((input.price) * 10 ** DECIMAL),
+    input.size,
     // web3.utils.toWei('1', 'ether'),
     _client.address,
-    _admin.address,
+    // _admin.address,
     // web3.utils.toWei('5', 'ether'),
     // BigInt((input.fixedPrice) * 10 ** DECIMAL),
-    web3.utils.toWei(`${input.fixedPrice}`, 'ether'),
+    // web3.utils.toWei(`${input.fixedPrice}`, 'ether'),
     input.endTime,
-    input.type,
     '',
     1
   );
@@ -76,6 +82,7 @@ export const createAuction = async (params?: any) => {
     auction,
     mockFil,
     eventBus,
+    offer,
     _admin,
     _client,
     _sp1,
