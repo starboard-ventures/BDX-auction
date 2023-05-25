@@ -40,8 +40,8 @@ contract BigDataExchange {
     constructor(address _admin, address _eventBus, address _offerAddr, address _paymentToken) {
         require(_admin != address(0), "Admin is 0.");
         require(_eventBus != address(0), "EventBus is 0.");
-        require(_offerAddr != address(0), "EventBus is 0.");
-        require(_paymentToken != address(0), "EventBus is 0.");
+        require(_offerAddr != address(0), "Offer address is 0.");
+        require(_paymentToken != address(0), "Token address is 0.");
         admin = _admin;
         eventBus = _eventBus;
         offerAddr = _offerAddr;
@@ -94,24 +94,17 @@ contract BigDataExchange {
         require(_eventBus != address(0), "Invalid");
         eventBus = _eventBus;
     }
+    
+    function setOfferAddr(address _offer) external {
+        require(msg.sender == admin, "Not admin.");
+        require(_offer != address(0), "Invalid");
+        offerAddr = _offer;
+    }
 
     function hasAuction(address _addr) public view returns (bool) {
         for (uint256 i = 0; i < auctionAddresses.length; i++) {
             if (auctionAddresses[i] == _addr) return true;
         }
         return false;
-    }
-
-    function testMultiAuctions() external {
-        for(uint256 i = 0; i < 10; i++) {
-            createAuction(
-                10 ether,
-                200,
-                msg.sender,
-                block.timestamp + 20000,
-                "",
-                1
-            );
-        }
     }
 }
