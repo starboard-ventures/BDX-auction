@@ -51,9 +51,11 @@ struct Deal {
     uint256 value;
     uint256 size;
     uint256 createTime;
+    address bider;
 }
 
 struct BidOffer {
+    uint256 id;
     address owner;
     uint256 totalValue;
     uint256 totalSize;
@@ -105,11 +107,9 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         require(_size > 0, "size not > 0");
         require(token.balanceOf(msg.sender) >= _value, "balance not enough");
         require(!_isBlacklisted[msg.sender], "blacklisted address");
-        uint256 _allowance = token.allowance(msg.sender, address(this));
-        if (_allowance < _value) {
-            token.approve(address(this), _allowance + _value);
-        }
+        require(token.allowance(msg.sender, address(this)) >= _value, "allowance not enough");
         BidOffer storage g = bidOffers[_offerId.current()];
+        g.id = _offerId.current();
         _offerId.increment();
         g.owner = msg.sender;
         g.status = OfferStatus.Active;
@@ -154,7 +154,7 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         );
         require(token.transferFrom(offer.owner, _auction, price), "pay failed");
         au.offerBid(offer.owner);
-        Deal memory deal = Deal(price, size, block.timestamp);
+        Deal memory deal = Deal(price, size, block.timestamp, offer.owner);
         offer.deals.push(_auction);
         dealsList.push(_auction);
         deals[_auction] = deal;
@@ -190,7 +190,9 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         BidOffer[] memory offerArray = new BidOffer[](_offerId.current());
         for (uint256 i = 0; i < _offerId.current(); i++) {
             BidOffer storage offer = bidOffers[i];
-            offerArray[i] = offer;
+            if(offer.createTime > 0) {
+                offerArray[i] = offer;
+            }
         }
         return offerArray;
     }
