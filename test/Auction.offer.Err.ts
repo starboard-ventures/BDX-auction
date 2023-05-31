@@ -14,7 +14,7 @@ describe("Test Auction", function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction, offer} = await createAuction({
       funds: 2000,
       price: 200,
-      size: 100,
+      size: 100 * 1024,
     });
     this.admin = _admin;
     this.client = _client;
@@ -32,10 +32,8 @@ describe("Test Auction", function () {
     await this.mockFil
       .connect(this.sp1)
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
-    // const bidTime = parseInt(new Date().getTime().toFixed(10));
-    // SP1 Bid
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
-    expect(await this.offer.admin()).to.equal(this.admin.address);
+    expect(await this.offer.owner()).to.equal(this.admin.address);
     expect(await this.offer.token()).to.equal(this.mockFil.address);
 
     // expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -49,15 +47,15 @@ describe("Test Auction", function () {
 
     await this.offer
       .connect(this.sp2)
-      .createOffer(BigInt(1000 * 10 ** DECIMAL), 500, 100, 1);
+      .createOffer(BigInt(1000 * 10 ** DECIMAL), 500 * 1024, 100 * 1024, 1);
     const of1 = (await this.offer.bidOffers(0)).map((v: any) => v.valueOf())
-    expect(of1[0]).to.equal(this.sp2.address);
+    expect(of1[1]).to.equal(this.sp2.address);
   });
 
   it("Client accept offer", async function () {
     const bidAmount = BigInt(2000 * 10 ** DECIMAL);
     // await this.mockFil.connect(this.sp2).transfer(this.client.address, bidAmount)
-    await expect( this.auction.connect(this.sp1).offerBid(this.sp2.address)).to.be.revertedWith('invalid caller')
+    await expect( this.auction.connect(this.sp1).offerBid(this.sp2.address, 100)).to.be.revertedWith('invalid caller')
     await this.offer.connect(this.client).bidOffer(this.auction.address, 0)
     const offerBalance = BigInt(200 * 10 ** DECIMAL);
     const sp2Balance = BigInt((2000 - 200) * 10 ** DECIMAL);
@@ -65,7 +63,6 @@ describe("Test Auction", function () {
     expect(await this.mockFil.balanceOf(this.auction.address)).to.equal(offerBalance);
     expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
     const bids = await this.auction.getBids()
-    console.log('get bids')
     expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
   });
 

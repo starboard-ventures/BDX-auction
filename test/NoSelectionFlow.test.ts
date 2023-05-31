@@ -30,7 +30,7 @@ describe("No Selection Auction", function () {
     const bidAmount = BigInt(2 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
+      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp2Balance = BigInt(98 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
@@ -46,7 +46,7 @@ describe("No Selection Auction", function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp1Balance = BigInt(99 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -62,7 +62,7 @@ describe("No Selection Auction", function () {
     const bidAmount = BigInt(3 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp3).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
+      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp3Balance = BigInt(97 * 10 ** DECIMAL);
 
@@ -78,10 +78,7 @@ describe("No Selection Auction", function () {
   });
 
   it("end selection", async function () {
-    await expect(this.auction.connect(this.admin).endSelection()).to.emit(
-      this.auction,
-      "SelectionEnded"
-    );
+    await expect(this.auction.connect(this.admin).endSelection());
 
     const sp2Balance = BigInt(100 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);

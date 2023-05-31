@@ -32,7 +32,7 @@ describe("Cancel Auction", function () {
     const bidAmount = BigInt(2 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp2Balance = BigInt(98 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
@@ -48,7 +48,7 @@ describe("Cancel Auction", function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING,BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING,BidType.BID);
 
     const sp1Balance = BigInt(99 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -64,7 +64,7 @@ describe("Cancel Auction", function () {
     const bidAmount = BigInt(3 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp3).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING,BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING,BidType.BID);
 
     const sp3Balance = BigInt(97 * 10 ** DECIMAL);
 
@@ -96,8 +96,7 @@ describe("Cancel Auction", function () {
 
   it("create auction", async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
-      minPrice: 0.5,
-      fixedPrice: 2,
+      price: 2,
       type: AuctionType.BOTH
     });
     this.admin = _admin;
@@ -119,7 +118,7 @@ describe("Cancel Auction", function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING,BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING,BidType.BID);
 
     const sp1Balance = BigInt(99 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -135,7 +134,7 @@ describe("Cancel Auction", function () {
     const bidAmount = BigInt(3 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp3).placeBid(bidAmount,  BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING,BidType.BID, AuctionType.BOTH);
+      .withArgs(this.sp3.address, bidAmount, BidState.BIDDING,BidType.BID);
 
     const sp3Balance = BigInt(97 * 10 ** DECIMAL);
 

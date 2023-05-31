@@ -27,6 +27,7 @@ contract BigDataExchange {
     address public eventBus;
     address public offerAddr;
     address public paymentToken;
+    mapping(address => bool) public _isBlacklisted;
 
     event AuctionCreated(
         address indexed _auctionAddress,
@@ -37,7 +38,12 @@ contract BigDataExchange {
         uint256 indexed _id
     );
 
-    constructor(address _admin, address _eventBus, address _offerAddr, address _paymentToken) {
+    constructor(
+        address _admin,
+        address _eventBus,
+        address _offerAddr,
+        address _paymentToken
+    ) {
         require(_admin != address(0), "Admin is 0.");
         require(_eventBus != address(0), "EventBus is 0.");
         require(_offerAddr != address(0), "Offer address is 0.");
@@ -60,6 +66,7 @@ contract BigDataExchange {
         require(_client != address(0), "Client is 0");
         require(_price >= 0, "_price invalid");
         require(_endTime > block.timestamp, "Endtime invalid.");
+        require(!_isBlacklisted[_client], "The client is blocked.");
         BigDataAuction auction = new BigDataAuction(
             IERC20(paymentToken),
             _price,
@@ -84,6 +91,11 @@ contract BigDataExchange {
         return address(auction);
     }
 
+    function setBlacklist(address _addr, bool _isBlacklist) external {
+        require(msg.sender == admin, "Not admin.");
+        _isBlacklisted[_addr] = _isBlacklist;
+    }
+
     // for get all auctions.
     function getAuctions() external view returns (address[] memory) {
         return auctionAddresses;
@@ -94,7 +106,7 @@ contract BigDataExchange {
         require(_eventBus != address(0), "Invalid");
         eventBus = _eventBus;
     }
-    
+
     function setOfferAddr(address _offer) external {
         require(msg.sender == admin, "Not admin.");
         require(_offer != address(0), "Invalid");

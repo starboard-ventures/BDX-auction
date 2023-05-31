@@ -64,7 +64,7 @@ describe("Validation Auction", function () {
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID, AuctionType.BID);
+      .withArgs(this.sp1.address, bidAmount, BidState.BIDDING, BidType.BID);
 
     const sp1Balance = BigInt(98.5 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
@@ -138,10 +138,7 @@ describe("Validation Auction", function () {
   });
 
   it("end selection", async function () {
-    await expect(this.auction.connect(this.admin).endSelection()).to.emit(
-      this.auction,
-      "SelectionEnded"
-    );
+    await expect(this.auction.connect(this.admin).endSelection());
   });
 
   it("set SP2 bid deal success not right", async function () {

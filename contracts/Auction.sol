@@ -27,7 +27,8 @@ contract BigDataAuction is ReentrancyGuard {
     uint256 public startTime;
     uint256 public endTime;
     uint256 public price;
-    uint256 public size; //unit TiB
+    //unit GiB: 1 TiB = 1024 GiB
+    uint256 public size; 
     int8 public version = 6;
 
     address[] public bidders;
@@ -90,8 +91,6 @@ contract BigDataAuction is ReentrancyGuard {
         offerManager = _offerManager;
         price = _price;
         size = _size;
-        // minPrice = _price;
-        // fixedPrice = _price;
         updateState(AuctionState.BIDDING);
         client = _client;
         startTime = block.timestamp;
@@ -247,7 +246,7 @@ contract BigDataAuction is ReentrancyGuard {
     }
 
     // general bid
-    function offerBid(address _bider) public returns (bool) {
+    function offerBid(address _bider, uint256 _payment) public returns (bool) {
         require(msg.sender == offerManager, "invalid caller");
         require(_bider != address(0), "invalid bidder");
         require(
@@ -259,13 +258,13 @@ contract BigDataAuction is ReentrancyGuard {
         bidders.push(_bider);
         Bid storage b = bids[_bider];
         b.bidState = BidState.SELECTED;
-        b.bidAmount = price;
+        b.bidAmount = _payment;
         b.bidTime = block.timestamp;
         b.bidType = BidType.OFFER;
         refundOthers(_bider);
         updateState(AuctionState.VERIFICATION);
         emitEvents("BidPlaced");
-        emit BidPlaced(_bider, price, b.bidState, BidType.OFFER);
+        emit BidPlaced(_bider, _payment, b.bidState, BidType.OFFER);
         return true;
     }
 

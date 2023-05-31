@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+
 /**
  *
  *       ,---,.     ,---,    ,--,     ,--,
@@ -22,6 +23,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  *   |   | ,'   |   ,.'     ;   |/   \  ' |
  *   `----'     '---'       `---'     `--`
  *  BDX General Bids
+ *  All of the size unit is GiB
  */
 
 interface IFactory {
@@ -35,7 +37,7 @@ interface IAuction {
 
     function client() external view returns (address);
 
-    function offerBid(address _addr) external returns (bool);
+    function offerBid(address _addr, uint256 _payment) external returns (bool);
 }
 
 enum OfferStatus {
@@ -48,10 +50,12 @@ enum OfferType {
 }
 
 struct Deal {
-    uint256 value;
-    uint256 size;
-    uint256 createTime;
-    address bider;
+    uint256 price;
+    uint256 size; // unit: GiB
+    uint256 createTime; // unit: second
+    address bidder;
+    address auction;
+    uint256 offerId;
 }
 
 struct BidOffer {
@@ -65,7 +69,6 @@ struct BidOffer {
     uint256 createTime;
     OfferStatus status;
     OfferType offerType;
-    address[] deals; // success deal auctions.
 }
 
 contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
@@ -80,13 +83,14 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
     mapping(address => Deal) public deals;
     mapping(address => bool) public _isBlacklisted;
 
-    event OfferCreated(
-        uint256 indexed id,
-        address indexed owner
-    );
+    event OfferCreated(uint256 indexed id, address indexed owner);
 
     event OfferCancelled(uint256 indexed id, address indexed sender);
-    event OfferAccepted(uint256 indexed id, address indexed owner, address indexed auction);
+    event OfferAccepted(
+        uint256 indexed id,
+        address indexed owner,
+        address indexed auction
+    );
 
     constructor(address _token) {
         require(_token != address(0), "invalid _token");
@@ -98,25 +102,28 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
     }
 
     function createOffer(
-        uint256 _value,
+        uint256 _price,
         uint256 _size,
         uint256 _minSize,
         OfferType _type
     ) public {
-        require(_value > 0, "value not > 0");
+        require(_price > 0, "value not > 0");
         require(_size > 0, "size not > 0");
-        require(token.balanceOf(msg.sender) >= _value, "balance not enough");
+        require(token.balanceOf(msg.sender) >= _price, "balance not enough");
         require(!_isBlacklisted[msg.sender], "blacklisted address");
-        require(token.allowance(msg.sender, address(this)) >= _value, "allowance not enough");
+        require(
+            token.allowance(msg.sender, address(this)) >= _price,
+            "allowance not enough"
+        );
         BidOffer storage g = bidOffers[_offerId.current()];
         g.id = _offerId.current();
         _offerId.increment();
         g.owner = msg.sender;
         g.status = OfferStatus.Active;
         g.totalSize = _size;
-        g.totalValue = _value;
+        g.totalValue = _price;
         g.minSize = _minSize;
-        g.validValue = _value;
+        g.validValue = _price;
         g.validSize = _size;
         g.offerType = _type;
         g.createTime = block.timestamp;
@@ -137,25 +144,29 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         emit OfferCancelled(_id, msg.sender);
     }
 
-    function bidOffer(address _auction, uint256 _id) external nonReentrant {
+    function bidOffer(address _auction, uint256 _offId) external nonReentrant {
         require(isValidAuction(_auction), "unvalid auction");
-        BidOffer storage offer = bidOffers[_id];
+        BidOffer storage offer = bidOffers[_offId];
         require(offer.status == OfferStatus.Active, "status not active");
         IAuction au = IAuction(_auction);
         require(au.client() == msg.sender, "invalid client");
         uint256 size = au.size();
-        uint256 price = au.price();
-        require(price <= offer.validValue, "price not enough");
         require(size <= offer.validSize, "size not enough");
         require(size >= offer.minSize, "size invalid");
+        uint256 payCount = getPayCont(offer.totalValue, offer.totalSize, size);
         require(
-            price / size <= offer.totalValue / offer.totalSize,
-            "unit price invalid"
+            token.transferFrom(offer.owner, _auction, payCount),
+            "pay failed"
         );
-        require(token.transferFrom(offer.owner, _auction, price), "pay failed");
-        au.offerBid(offer.owner);
-        Deal memory deal = Deal(price, size, block.timestamp, offer.owner);
-        offer.deals.push(_auction);
+        au.offerBid(offer.owner, payCount);
+        Deal memory deal = Deal(
+            payCount,
+            size,
+            block.timestamp,
+            offer.owner,
+            _auction,
+            _offId
+        );
         dealsList.push(_auction);
         deals[_auction] = deal;
         if (offer.offerType == OfferType.Single) {
@@ -163,10 +174,10 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
             offer.validSize = 0;
             offer.status = OfferStatus.Cancelled;
         } else {
-            offer.validValue -= price;
+            offer.validValue -= payCount;
             offer.validSize -= size;
         }
-        emit OfferAccepted(_id, offer.owner, _auction);
+        emit OfferAccepted(_offId, offer.owner, _auction);
     }
 
     function setBlacklist(address _addr, bool _isBlacklist) external onlyOwner {
@@ -181,6 +192,13 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         return false;
     }
 
+    // helper
+
+    function getPayCont(uint256 price, uint256 size, uint256 _paySize) public pure returns (uint256) {
+        return
+            (((price * 100 * _paySize) / 1000000000000000000 / size) * 1000000000000000000) / 100;
+    }
+
     // getter functions
     function getOfferCount() public view returns (uint256) {
         return _offerId.current();
@@ -190,20 +208,7 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         BidOffer[] memory offerArray = new BidOffer[](_offerId.current());
         for (uint256 i = 0; i < _offerId.current(); i++) {
             BidOffer storage offer = bidOffers[i];
-            if(offer.createTime > 0) {
-                offerArray[i] = offer;
-            }
-        }
-        return offerArray;
-    }
-
-    function getOffers(address _owner) public view returns (BidOffer[] memory) {
-        BidOffer[] memory offerArray = new BidOffer[](_offerId.current());
-        for (uint256 i = 0; i < _offerId.current(); i++) {
-            BidOffer storage offer = bidOffers[i];
-            if (offer.owner == _owner) {
-                offerArray[offerArray.length] = offer;
-            }
+            offerArray[i] = offer;
         }
         return offerArray;
     }
@@ -213,17 +218,6 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < dealsList.length; i++) {
             Deal storage dl = deals[dealsList[i]];
             dealArray[i] = dl;
-        }
-        return dealArray;
-    }
-
-    function getDeals(address _owner) public view returns (Deal[] memory) {
-        Deal[] memory dealArray = new Deal[](dealsList.length);
-        for (uint256 i = 0; i < dealsList.length; i++) {
-            if (dealsList[i] == _owner) {
-                Deal storage dl = deals[dealsList[i]];
-                dealArray[dealArray.length] = dl;
-            }
         }
         return dealArray;
     }

@@ -32,12 +32,12 @@ describe("Test Auto Select", function () {
       .connect(this.sp1)
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP1 Bid
-    const bidAmount = BigInt(3 * 10 ** DECIMAL);
+    const bidAmount = BigInt(5 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW, AuctionType.BOTH);
+      .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW);
 
-    const sp1Balance = BigInt(97 * 10 ** DECIMAL);
+    const sp1Balance = BigInt(95 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 

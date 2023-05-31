@@ -10,7 +10,7 @@ export const createAuction = async (params?: any) => {
     // minPrice: 1,
     price: 5,
     // fixedPrice: 5,
-    size: 100,
+    size: 100 * 1024,
     // type: AuctionType.BOTH,
     endTime: ((Date.now() + 10 * 60 * 1000) / 1000) >>> 0,
     ...params

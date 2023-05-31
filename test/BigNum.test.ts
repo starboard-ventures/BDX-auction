@@ -12,7 +12,7 @@ describe("Test Auction BigNumber", function () {
   before(async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
       funds: 5000,
-      fixedPrice: 3117
+      price: 3117
     });
     this.admin = _admin;
     this.client = _client;
@@ -34,7 +34,7 @@ describe("Test Auction BigNumber", function () {
     const bidAmount =  web3.utils.toWei('3117', 'ether');
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
       .to.emit(this.auction, "BidPlaced")
-      .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW, AuctionType.BOTH);
+      .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW);
 
     const sp1Balance =  web3.utils.toWei('1883', 'ether');
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
