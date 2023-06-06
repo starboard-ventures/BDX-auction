@@ -332,6 +332,7 @@ contract BigDataAuction is ReentrancyGuard {
             updateState(AuctionState.VERIFICATION);
         } else {
             if (hasBidded(msg.sender)) {
+                require(_bid > b.bidAmount, "Bid not higher");
                 require(b.bidState == BidState.BIDDING, "Not allowed bid");
             }
             b.bidState = BidState.BIDDING;

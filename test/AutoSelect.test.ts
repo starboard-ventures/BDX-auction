@@ -14,8 +14,7 @@ import { createAuction } from "./helper";
 describe("Test Auto Select", function () {
   before(async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
-      type: AuctionType.BOTH,
-      fixedPrice: 3,
+      price: 5,
     });
     this.admin = _admin;
     this.client = _client;
@@ -33,25 +32,29 @@ describe("Test Auto Select", function () {
       .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP1 Bid
     const bidAmount = BigInt(5 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
+    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW, {
+      value: bidAmount
+    }))
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW);
-
-    const sp1Balance = BigInt(95 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
+     await expect(await ethers.provider.getBalance(this.auction.address))
+      .to.equal(bidAmount)
+    // const sp1Balance = BigInt(95 * 10 ** DECIMAL);
+    // expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 
   it("end bidding", async function () {
-    const payoutAmount = BigInt(1 * 10 ** DECIMAL);
-    await expect(
-      this.auction.connect(this.admin).endBidding()
-    )
-    await expect(
-      this.auction.connect(this.admin).endSelection()
-    )
+    const payoutAmount = BigInt(5 * 10 ** DECIMAL);
+    // await expect(
+    //   this.auction.connect(this.admin).endBidding()
+    // )
+    // await expect(
+    //   this.auction.connect(this.admin).endSelection()
+    // )
 
     const state =  await this.auction.bids(this.sp1.address)
     expect(state.bidState).to.equal(BidState.SELECTED);
+    expect(state.bidAmount).to.equal(payoutAmount);
     expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
   });
 
