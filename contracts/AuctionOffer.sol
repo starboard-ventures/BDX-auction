@@ -73,7 +73,7 @@ struct BidOffer {
 
 contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
-
+ 
     Counters.Counter private _offerId;
     IERC20 public token;
 
@@ -137,9 +137,6 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
             "not owner or admin"
         );
         require(g.status == OfferStatus.Active, "status not active");
-        require(g.validValue > 0, "no available token");
-        g.validValue = 0;
-        g.validSize = 0;
         g.status = OfferStatus.Cancelled;
         emit OfferCancelled(_id, msg.sender);
     }

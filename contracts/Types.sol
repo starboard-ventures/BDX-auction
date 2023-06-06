@@ -13,6 +13,11 @@ enum BidType {
     OFFER
 }
 
+enum PaymentType {
+    WFIL,
+    FIL
+}
+
 enum AuctionState {
     BIDDING,
     NO_BID_CANCELLED,
@@ -38,6 +43,7 @@ struct Bid {
     uint256 bidConfirmed;
     BidState bidState;
     BidType bidType;
+    uint256 balance;
 }
 
 interface IEventBus {

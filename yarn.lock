@@ -977,6 +977,11 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
+"@openzeppelin/contracts-upgradeable@^4.9.0":
+  version "4.9.0"
+  resolved "https://registry.npmmirror.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.9.0.tgz#70aaef469c8ac5bb0ff781480f3d321cbf7be3a8"
+  integrity sha512-+6i2j6vr2fdudTqkBvG+UOosankukxYzg3WN1nqU7ijjQ5A4osWaD3ip6CEz6YvDoSdZgcFVZoiGr7zRlUUoZw==
+
 "@openzeppelin/contracts@^4.5.0":
   version "4.6.0"
   resolved "https://registry.npmmirror.com/@openzeppelin/contracts/-/contracts-4.6.0.tgz#c91cf64bc27f573836dba4122758b4743418c1b3"
