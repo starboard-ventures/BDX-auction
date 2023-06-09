@@ -190,7 +190,6 @@ contract BigDataExchangeOffer is Ownable, ReentrancyGuard {
     }
 
     // helper
-
     function getPayCont(uint256 price, uint256 size, uint256 _paySize) public pure returns (uint256) {
         return
             (((price * 100 * _paySize) / 1000000000000000000 / size) * 1000000000000000000) / 100;

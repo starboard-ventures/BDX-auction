@@ -1,0 +1,12 @@
+{
+  "id": 314159,
+  "network": "Custom",
+  "deployments": {
+    "0x0567ee4F9bC1B97854859c59281F099229963608": {
+      "date": "2023-06-07T06:48:33.735Z",
+      "contractName": "BigDataExchangeOfferUpgradeable",
+      "fork": "london",
+      "implementationAddress": "0xd4f18F840c3aD432C6C09ea0b64113d5eecbECB5"
+    }
+  }
+}

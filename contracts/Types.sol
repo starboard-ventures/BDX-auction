@@ -43,7 +43,7 @@ struct Bid {
     uint256 bidConfirmed;
     BidState bidState;
     BidType bidType;
-    uint256 balance;
+    address owner;
 }
 
 interface IEventBus {

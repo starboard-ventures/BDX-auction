@@ -205,7 +205,7 @@ contract BigDataExchangeOfferUpgradeable is Initializable, OwnableUpgradeable, U
 
     modifier nonReentrance() {
         // On the first call to nonReentrant, _status will be _NOT_ENTERED
-        require(_running != true, "ReentrancyGuard: reentrant call");
+        require(!_running, "ReentrancyGuard: reentrant call");
         _running = true;
         _;
         _running = false;

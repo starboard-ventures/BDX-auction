@@ -310,6 +310,7 @@ contract BigDataAuction is ReentrancyGuard {
         b.bidAmount = _payment;
         b.bidTime = block.timestamp;
         b.bidType = BidType.OFFER;
+        b.owner = _bider;
         refundUnsuccessfulBids();
         updateState(AuctionState.VERIFICATION);
         emitEvents("BidPlaced");
@@ -341,6 +342,7 @@ contract BigDataAuction is ReentrancyGuard {
         }
         b.bidAmount = _bid;
         b.bidTime = block.timestamp;
+        b.owner = msg.sender;
         emitEvents("BidPlaced");
         emit BidPlaced(msg.sender, _bid, b.bidState, _type);
     }
@@ -353,7 +355,7 @@ contract BigDataAuction is ReentrancyGuard {
     function updateAllOngoingBidsToPending() internal {
         for (uint8 i = 0; i < bidders.length; i++) {
             Bid storage b = bids[bidders[i]];
-            if (b.bidAmount > 0) {
+            if (b.bidState == BidState.BIDDING) {
                 b.bidState = BidState.PENDING_SELECTION;
             }
         }

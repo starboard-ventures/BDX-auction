@@ -6,7 +6,8 @@ export enum AuctionType {
 
 export enum BidType {
   BID,
-  BUY_NOW
+  BUY_NOW,
+  OFFER
 }
 
 export enum AuctionState {
