@@ -178,10 +178,9 @@ contract BigDataExchangeOfferUpgradeable is Initializable, OwnableUpgradeable, U
         deals[_auction] = deal;
         if (offer.offerType == OfferType.Single) {
             offer.status = OfferStatus.Cancelled;
-        } else {
-            offer.validValue -= payCount;
-            offer.validSize -= size;
         }
+        offer.validValue -= payCount;
+        offer.validSize -= size;
         emit OfferAccepted(_offId, offer.owner, _auction);
     }
 
@@ -204,7 +203,6 @@ contract BigDataExchangeOfferUpgradeable is Initializable, OwnableUpgradeable, U
     }
 
     modifier nonReentrance() {
-        // On the first call to nonReentrant, _status will be _NOT_ENTERED
         require(!_running, "ReentrancyGuard: reentrant call");
         _running = true;
         _;
