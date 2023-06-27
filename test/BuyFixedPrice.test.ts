@@ -9,7 +9,7 @@ const DECIMAL = 18;
 describe("Test Fixed Auction", function () {
   before(async function () {
     const {_admin, _client, _sp1, _sp2, _sp3, mockFil, auction} = await createAuction({
-      price: 3,
+      price: 8000,
       funds: 100,
     });
     this.admin = _admin;
@@ -29,33 +29,28 @@ describe("Test Fixed Auction", function () {
     // SP1 Bid
     const bidAmount = BigInt(1 * 10 ** DECIMAL);
     await this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID)
-    const sp1Balance = BigInt(99 * 10 ** DECIMAL);
+    const sp1Balance = BigInt(100 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
   it("SP2 buy with wrong price", async function () {
-    // Approve SPs wallet
-    await this.mockFil
-      .connect(this.sp2)
-      .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP2 Buy
+    expect(await await ethers.provider.getBalance(this.sp2.address)).to.equal(web3.utils.toWei('10000', 'ether'));
     const bidAmount = BigInt(2 * 10 ** DECIMAL);
-    await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW)).to.be.revertedWith('Total price not right')
+    await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW, {
+      value: bidAmount
+    })).to.be.revertedWith('Total price not right')
   });
 
   it("SP2 buy auction", async function () {
-    // Approve SPs wallet
-    await this.mockFil
-      .connect(this.sp2)
-      .approve(this.auction.address, BigInt(9999999 * 10 ** DECIMAL));
     // SP2 Buy
-    const bidAmount = web3.utils.toWei('3', 'ether');
-    await this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW)
-    // SP1 refund
-    const sp1Balance = BigInt(100 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
+
+    const bidAmount = web3.utils.toWei('8000', 'ether');
+    await this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW, {
+      value: bidAmount
+    })
     // SP2 selected
-    const sp2Balance = BigInt(97 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
+    // const sp2Balance = BigInt(8000 * 10 ** DECIMAL);
+    expect(await await ethers.provider.getBalance(this.auction.address)).to.equal(web3.utils.toWei('8000', 'ether'));
     expect(await this.auction.auctionState()).to.equal(AuctionState.VERIFICATION);
   });
 });

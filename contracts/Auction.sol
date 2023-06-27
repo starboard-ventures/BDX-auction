@@ -111,7 +111,6 @@ contract BigDataAuction is ReentrancyGuard {
         require(auctionState == AuctionState.BIDDING, "Auction not BIDDING");
         require(_bid >= 0, "Bid not >= 0");
         if (_bidType == BidType.BUY_NOW) {
-            require(msg.sender.balance >= _bid, "Insufficient balance");
             require(msg.value == _bid, "Insufficient payment");
         } else {
             require(getAllowance(msg.sender) >= _bid, "Insufficient allowance");
