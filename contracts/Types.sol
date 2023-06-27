@@ -24,7 +24,8 @@ enum AuctionState {
     SELECTION,
     VERIFICATION,
     CANCELLED,
-    COMPLETED
+    COMPLETED,
+    REFUNDED
 }
 
 enum BidState {

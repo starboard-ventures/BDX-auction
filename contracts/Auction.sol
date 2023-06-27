@@ -284,7 +284,7 @@ contract BigDataAuction is ReentrancyGuard {
             );
         }
         b.bidState = BidState.DEAL_UNSUCCESSFUL_REFUNDED;
-        updateAuctionEnd();
+        updateState(AuctionState.REFUNDED);
         emitEvents("BidRefund");
         emit BidDealUnsuccessfulRefund(
             bidder,
