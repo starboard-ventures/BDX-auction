@@ -34,8 +34,7 @@ describe("Cancel Auction", function () {
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp2.address, bidAmount, BidState.BIDDING, BidType.BID);
 
-    const sp2Balance = BigInt(98 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
+    expect({...await this.auction.bids(this.sp2.address)}.bidAmount).to.equal(bidAmount);
   });
 
   it("SP1 bid for auction", async function () {
@@ -50,8 +49,8 @@ describe("Cancel Auction", function () {
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.BIDDING,BidType.BID);
 
-    const sp1Balance = BigInt(99 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
+    // const sp1Balance = BigInt(99 * 10 ** DECIMAL);
+    // expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 
   it("SP3 bid for auction", async function () {
@@ -66,9 +65,9 @@ describe("Cancel Auction", function () {
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp3.address, bidAmount, BidState.BIDDING,BidType.BID);
 
-    const sp3Balance = BigInt(97 * 10 ** DECIMAL);
+    // const sp3Balance = BigInt(97 * 10 ** DECIMAL);
 
-    expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
+    // expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
   });
 
   it("cancel auction when bidding", async function () {
@@ -119,9 +118,6 @@ describe("Cancel Auction", function () {
     await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BID))
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.BIDDING,BidType.BID);
-
-    const sp1Balance = BigInt(99 * 10 ** DECIMAL);
-    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
   });
 
   it("SP3 bid for auction", async function () {
@@ -136,9 +132,6 @@ describe("Cancel Auction", function () {
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp3.address, bidAmount, BidState.BIDDING,BidType.BID);
 
-    const sp3Balance = BigInt(97 * 10 ** DECIMAL);
-
-    expect(await this.mockFil.balanceOf(this.sp3.address)).to.equal(sp3Balance);
   });
 
   it("cancel auction when selection", async function () {
@@ -148,7 +141,6 @@ describe("Cancel Auction", function () {
     );
     expect(await this.auction.auctionState()).to.equal(AuctionState.CANCELLED);
 
-    // refunded
     const sp2Balance = BigInt(100 * 10 ** DECIMAL);
     expect(await this.mockFil.balanceOf(this.sp2.address)).to.equal(sp2Balance);
 

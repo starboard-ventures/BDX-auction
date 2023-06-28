@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./Auction.sol";
+import "./AuctionProxy.sol";
 
 /**
  *
@@ -27,6 +27,7 @@ contract BigDataExchange {
     address public eventBus;
     address public offerAddr;
     address public paymentToken;
+    address public implementation;
     mapping(address => bool) public _isBlacklisted;
 
     event AuctionCreated(
@@ -42,7 +43,8 @@ contract BigDataExchange {
         address _admin,
         address _eventBus,
         address _offerAddr,
-        address _paymentToken
+        address _paymentToken,
+        address _implementation
     ) {
         require(_admin != address(0), "Admin is 0.");
         require(_eventBus != address(0), "EventBus is 0.");
@@ -52,6 +54,7 @@ contract BigDataExchange {
         eventBus = _eventBus;
         offerAddr = _offerAddr;
         paymentToken = _paymentToken;
+        implementation = _implementation;
     }
 
     // for users and admin create auctions.
@@ -111,6 +114,12 @@ contract BigDataExchange {
         require(msg.sender == admin, "Not admin.");
         require(_offer != address(0), "Invalid");
         offerAddr = _offer;
+    }
+
+    function setImplementation(address _impl) external {
+        require(msg.sender == admin, "Not admin.");
+        require(_impl != address(0), "Invalid address");
+        implementation = _impl;
     }
 
     function hasAuction(address _addr) public view returns (bool) {

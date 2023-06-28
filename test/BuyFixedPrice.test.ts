@@ -34,7 +34,6 @@ describe("Test Fixed Auction", function () {
   });
   it("SP2 buy with wrong price", async function () {
     // SP2 Buy
-    expect(await await ethers.provider.getBalance(this.sp2.address)).to.equal(web3.utils.toWei('10000', 'ether'));
     const bidAmount = BigInt(2 * 10 ** DECIMAL);
     await expect(this.auction.connect(this.sp2).placeBid(bidAmount, BidType.BUY_NOW, {
       value: bidAmount
