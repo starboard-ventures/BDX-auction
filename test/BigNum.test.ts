@@ -32,11 +32,13 @@ describe("Test Auction BigNumber", function () {
     // const bidTime = parseInt(new Date().getTime().toFixed(10));
     // SP1 Bid
     const bidAmount =  web3.utils.toWei('3117', 'ether');
-    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW))
+    await expect(this.auction.connect(this.sp1).placeBid(bidAmount, BidType.BUY_NOW, {
+      value: bidAmount
+    }))
       .to.emit(this.auction, "BidPlaced")
       .withArgs(this.sp1.address, bidAmount, BidState.SELECTED, BidType.BUY_NOW);
 
-    const sp1Balance =  web3.utils.toWei('1883', 'ether');
-    expect(await this.mockFil.balanceOf(this.sp1.address)).to.equal(sp1Balance);
+    // const sp1Balance =  web3.utils.toWei('6883', 'ether');
+    expect(await ethers.provider.getBalance(this.auction.address)).to.equal(bidAmount);
   });
 });

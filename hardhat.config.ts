@@ -6,6 +6,9 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "@openzeppelin/hardhat-upgrades"
+import "@nomiclabs/hardhat-ethers"
+
 const { setGlobalDispatcher, ProxyAgent } = require("undici");
 // import "hardhat-contract-sizer"
 dotenv.config();

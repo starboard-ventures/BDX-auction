@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers, upgrades } from "hardhat";
 import { AuctionType, BidType, AuctionState, BidState } from './_utils'
 import web3 from 'web3'
 const DECIMAL = 18;
@@ -19,15 +19,32 @@ export const createAuction = async (params?: any) => {
   const [_admin, _client, _sp1, _sp2, _sp3] = await ethers.getSigners();
   
   const MockFil = await ethers.getContractFactory("MockFil");
+  const Impl = await ethers.getContractFactory("BigDataAuctionImpl");
   const EventBus = await ethers.getContractFactory("BigDataExchangeEvents");
-  const OfferContract = await ethers.getContractFactory("BigDataExchangeOffer");
-
+  const OfferContract = await ethers.getContractFactory("BigDataExchangeOfferUpgradeable");
+  
   const mockFil = await MockFil.deploy(BigInt(100000 * 10 ** DECIMAL));
   await mockFil.deployed();
-  const offer = await OfferContract.deploy(mockFil.address);
+  // const offer = await OfferContract.deploy(mockFil.address);
+  const offerProxy = await upgrades.deployProxy(
+    OfferContract,
+ 
+    //Since the logic contract has an initialize() function
+    // we need to pass in the arguments to the initialize()
+    // function here.
+    [mockFil.address],
+ 
+    // We don't need to expressly specify this
+    // as the Hardhat runtime will default to the name 'initialize'
+    { initializer: "initialize" }
+  );
+  await offerProxy.deployed();
+  // const offer = await OfferContract.deploy();
   const eventBus = await EventBus.deploy();
-  await offer.deployed();
+  const impl = await Impl.deploy();
+  // await offer.deployed();
   await eventBus.deployed();
+  await impl.deployed();
 
   // Seed sps with funds
   const seedAmount = BigInt((input.funds) * 10 ** DECIMAL);
@@ -41,12 +58,12 @@ export const createAuction = async (params?: any) => {
     .connect(_admin)
     .transfer(_sp3.address, seedAmount);
 
-  const Auction = await ethers.getContractFactory("BigDataAuction");
+  const Auction = await ethers.getContractFactory("BigDataAuctionImpl");
   const AuctionFactory = await ethers.getContractFactory("BigDataExchange");
-  const auctionFactory = await AuctionFactory.deploy(_admin.address, eventBus.address, offer.address, mockFil.address);
+  const auctionFactory = await AuctionFactory.deploy(_admin.address, eventBus.address, offerProxy.address, mockFil.address, impl.address);
   await auctionFactory.deployed();
 
-  await offer.connect(_admin).setFactory([auctionFactory.address])
+  await offerProxy.connect(_admin).setFactory([auctionFactory.address])
 
   const deployedAuction = await auctionFactory.createAuction(
     // BigInt((input.price) * 10 ** DECIMAL),
@@ -76,14 +93,14 @@ export const createAuction = async (params?: any) => {
   const auctionAddress = receipt?.events?.filter?.((x: { event: string }) => {
     return x.event === "AuctionCreated";
   })[0].args[0];
-
+  
   const auction = await Auction.attach(auctionAddress);
 
   return {
     auction,
     mockFil,
     eventBus,
-    offer,
+    offer: offerProxy,
     _admin,
     _client,
     _sp1,
