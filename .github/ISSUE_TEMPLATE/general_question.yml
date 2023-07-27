@@ -1,0 +1,11 @@
+name: "General Question"
+description: "General question, not bug report, not feature request."
+labels: [need/triage, kind/question]
+body:
+- type: textarea
+  id: question
+  attributes:
+    label: "Question"
+    description: "Any question about the application"
+  validations:
+    required: true
